@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k8s-platform/console/internal/api/middleware"
 	"github.com/k8s-platform/console/internal/version"
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/response"
@@ -27,6 +28,12 @@ func (h *VersionHandler) ListVersions(c *gin.Context) {
 	if clusterCode == "" || apiVersion == "" || kind == "" || name == "" {
 		response.Fail(c, errcode.New(errcode.InvalidArgument,
 			"cluster_code, api_version, kind, name 为必填查询参数"))
+		return
+	}
+
+	// RBAC 数据范围校验：namespace 为空（集群级资源）时退化为 cluster scope 校验
+	if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 
@@ -96,6 +103,12 @@ func (h *VersionHandler) DiffVersions(c *gin.Context) {
 		return
 	}
 
+	// RBAC 数据范围校验：namespace 为空（集群级资源）时退化为 cluster scope 校验
+	if err := middleware.RequireNamespaceScope(c, req.ClusterCode, req.Namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+
 	yamlA, yamlB, err := h.VersionMgr.DiffVersions(
 		req.ClusterCode, req.Namespace, req.APIVersion, req.Kind, req.Name, req.SeqA, req.SeqB,
 	)
@@ -129,6 +142,13 @@ func (h *VersionHandler) Rollback(c *gin.Context) {
 	var req rollbackReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Fail(c, errcode.Wrap(errcode.InvalidArgument, err, "请求体解析失败"))
+		return
+	}
+
+	// RBAC 数据范围校验：回滚前确认用户对该集群/命名空间有访问权
+	// namespace 为空（集群级资源）时退化为 cluster scope 校验
+	if err := middleware.RequireNamespaceScope(c, req.ClusterCode, req.Namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 

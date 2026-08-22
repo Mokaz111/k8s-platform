@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k8s-platform/console/internal/api/middleware"
 	"github.com/k8s-platform/console/internal/resource"
 	"github.com/k8s-platform/console/internal/version"
 	"github.com/k8s-platform/console/pkg/errcode"
@@ -36,6 +37,12 @@ func parseGVK(apiVersion, kind string) (schema.GroupVersionKind, error) {
 	return gv.WithKind(kind), nil
 }
 
+// validateScope 做两件事：
+//  1. 校验 X-Cluster-Code / X-Namespace header 与路径参数一致（防止伪造）
+//  2. 校验当前用户对该 cluster/namespace 是否有 RBAC 数据范围权限
+//
+// namespaced 资源：namespace 必须在用户允许范围内
+// 集群级资源（PV/StorageClass 等）：仅校验 cluster scope
 func (h *ResourceHandler) validateScope(c *gin.Context, gvk schema.GroupVersionKind, namespace string) error {
 	clusterCode := c.Param("code")
 	headerCluster := c.GetHeader("X-Cluster-Code")
@@ -43,17 +50,39 @@ func (h *ResourceHandler) validateScope(c *gin.Context, gvk schema.GroupVersionK
 		return errcode.New(errcode.ScopeDenied, "X-Cluster-Code 与路径不一致")
 	}
 
-	if h.ResourceMgr.IsNamespaced(gvk) && namespace != "" {
-		headerNS := c.GetHeader("X-Namespace")
-		if headerNS != "" && headerNS != namespace {
-			pt, ok := c.Get("perm_tree")
-			if ok {
-				if admin, ok := pt.(interface{ IsPlatformAdmin() bool }); ok && admin.IsPlatformAdmin() {
-					return nil
-				}
-			}
-			return errcode.New(errcode.ScopeDenied, "X-Namespace 与路径不一致")
+	namespaced := h.ResourceMgr.IsNamespaced(gvk)
+
+	// 集群级资源（如 PV/StorageClass/Namespace/Node）：只需 cluster scope
+	if !namespaced {
+		if err := middleware.RequireClusterScope(c, clusterCode); err != nil {
+			return err
 		}
+		return nil
+	}
+
+	// 命名空间级资源
+	headerNS := c.GetHeader("X-Namespace")
+	if headerNS != "" && headerNS != namespace {
+		return errcode.New(errcode.ScopeDenied, "X-Namespace 与路径不一致")
+	}
+
+	// namespace 为空：仅 cluster scope 用户可以 list all namespaces；namespace scope 用户被拒
+	if namespace == "" {
+		nsList, isFull := middleware.AllowedNamespaces(c, clusterCode)
+		if isFull {
+			return nil
+		}
+		// 仅 namespace scope 用户且未指定 namespace
+		if len(nsList) == 0 {
+			return errcode.New(errcode.ScopeDenied, "无权访问集群: "+clusterCode)
+		}
+		return errcode.New(errcode.InvalidArgument,
+			"请指定 namespace 参数；您仅可访问: "+strings.Join(nsList, ", "))
+	}
+
+	// namespace 非空：精确校验
+	if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+		return err
 	}
 	return nil
 }

@@ -73,6 +73,9 @@ func AccessLog(log *logger.Logger, cfg *config.SecurityConfig) gin.HandlerFunc {
 			_ = c.Request.Body.Close()
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 		}
+		// 把原始 body 暂存到 context，供 AuditMiddleware 在 handler 消费后仍可取用
+		// （handler 会消费 c.Request.Body，AuditMiddleware 在 c.Next() 后无法再读）
+		c.Set("audit_body", reqBody)
 
 		log = log.With("trace_id", c.GetString("trace_id"))
 		c.Set("logger", log)

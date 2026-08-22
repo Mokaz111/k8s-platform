@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k8s-platform/console/internal/api/middleware"
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/response"
 	ws "github.com/k8s-platform/console/internal/websocket"
@@ -55,6 +56,13 @@ func (h *PodLogHandler) StreamPodLogsHandler(c *gin.Context) {
 
 	if clusterCode == "" || namespace == "" || podName == "" {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "code/namespace/pod 不能为空"))
+		return
+	}
+
+	// RBAC 数据范围校验：确保用户对该集群的该命名空间有访问权
+	// Pod 必然属于某个命名空间，故用 RequireNamespaceScope 精确校验
+	if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 

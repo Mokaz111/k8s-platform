@@ -56,6 +56,118 @@ func (pt *PermissionTree) PermsSlice() []string {
 	return s
 }
 
+// HasClusterScope 判断用户对指定集群是否有任意范围（cluster 或 namespace）的访问权
+// 平台管理员恒为 true
+func (pt *PermissionTree) HasClusterScope(clusterCode string) bool {
+	if pt == nil {
+		return false
+	}
+	if pt.IsPlatformAdmin {
+		return true
+	}
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType == models.ScopePlatform {
+			return true
+		}
+		if sc.ClusterCode != clusterCode {
+			continue
+		}
+		if sc.ScopeType == models.ScopeCluster || sc.ScopeType == models.ScopeNamespace {
+			return true
+		}
+	}
+	return false
+}
+
+// HasNamespaceScope 判断用户对指定集群的指定命名空间是否有访问权
+// 命名空间级 scope 精确匹配；集群级 scope 命中任意命名空间；平台管理员恒为 true
+func (pt *PermissionTree) HasNamespaceScope(clusterCode, namespace string) bool {
+	if pt == nil {
+		return false
+	}
+	if pt.IsPlatformAdmin {
+		return true
+	}
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType == models.ScopePlatform {
+			return true
+		}
+		if sc.ClusterCode != clusterCode {
+			continue
+		}
+		switch sc.ScopeType {
+		case models.ScopeCluster:
+			return true
+		case models.ScopeNamespace:
+			if sc.Namespace == namespace {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// AllowedClusters 返回用户可访问的所有集群 code 列表（用于跨集群列表场景，如顶层 /backups 不带 cluster_code 时）
+// 返回值：
+//   - nil, true: 平台级范围（platform scope 或 IsPlatformAdmin），可访问全部集群
+//   - codes, false: 仅可访问 codes 中的集群（codes 可能为空，表示无任何集群访问权）
+func (pt *PermissionTree) AllowedClusters() ([]string, bool) {
+	if pt == nil {
+		return nil, false
+	}
+	if pt.IsPlatformAdmin {
+		return nil, true
+	}
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType == models.ScopePlatform {
+			return nil, true
+		}
+	}
+	seen := make(map[string]struct{})
+	var codes []string
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType != models.ScopeCluster && sc.ScopeType != models.ScopeNamespace {
+			continue
+		}
+		if sc.ClusterCode == "" {
+			continue
+		}
+		if _, ok := seen[sc.ClusterCode]; !ok {
+			seen[sc.ClusterCode] = struct{}{}
+			codes = append(codes, sc.ClusterCode)
+		}
+	}
+	return codes, false
+}
+
+// AllowedNamespaces 返回用户对指定集群可访问的命名空间列表
+// 返回值：
+//   - namespaces, true: 用户对该集群有 cluster 级或 platform 级范围，可访问全部命名空间（namespaces 为空切片约定）
+//   - namespaces, false: 用户仅有 namespace 级范围，namespaces 为允许的具体列表（可能为空，表示对该集群无任何命名空间权）
+func (pt *PermissionTree) AllowedNamespaces(clusterCode string) ([]string, bool) {
+	if pt == nil {
+		return nil, false
+	}
+	if pt.IsPlatformAdmin {
+		return nil, true
+	}
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType == models.ScopePlatform {
+			return nil, true
+		}
+		if sc.ClusterCode == clusterCode && sc.ScopeType == models.ScopeCluster {
+			return nil, true
+		}
+	}
+	var nsList []string
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType == models.ScopeNamespace && sc.ClusterCode == clusterCode {
+			nsList = append(nsList, sc.Namespace)
+		}
+	}
+	return nsList, false
+}
+
 type LoginResult struct {
 	AccessToken     string `json:"access_token"`
 	RefreshToken    string `json:"refresh_token"`

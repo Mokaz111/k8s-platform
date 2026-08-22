@@ -51,6 +51,13 @@ type ListInput struct {
 	ClusterCode string
 	Status      models.BackupTaskStatus
 	Keyword     string
+
+	// RBAC 数据范围过滤字段（由 handler 注入）
+	//   ClusterCodes 非空：仅查询这些集群的备份（跨集群列表场景，未指定 ClusterCode 时使用）
+	//   Namespaces  非空：仅查询这些命名空间的备份（单集群场景，namespace scope 用户）
+	//   二者均为 nil：表示不限制（platform 级用户或未挂 RBAC）
+	ClusterCodes []string
+	Namespaces   []string
 }
 
 type ListResult struct {
@@ -194,6 +201,14 @@ func (m *Manager) List(ctx context.Context, in *ListInput) (*ListResult, error) 
 	q := m.DB.WithContext(ctx).Model(&models.BackupTask{})
 	if in.ClusterCode != "" {
 		q = q.Where("cluster_code = ?", in.ClusterCode)
+	}
+	if len(in.ClusterCodes) > 0 {
+		q = q.Where("cluster_code IN ?", in.ClusterCodes)
+	}
+	if len(in.Namespaces) > 0 {
+		// namespace scope 用户：仅返回允许的命名空间内的备份
+		// 集群级备份（namespace 为 NULL）不会命中，符合"无 cluster scope 不应见集群级备份"的语义
+		q = q.Where("namespace IN ?", in.Namespaces)
 	}
 	if in.Status != "" {
 		q = q.Where("status = ?", in.Status)

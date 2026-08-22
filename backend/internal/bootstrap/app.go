@@ -195,6 +195,7 @@ func (a *App) RegisterAPIRoutes() *gin.Engine {
 		authorized := v1.Group("")
 		authorized.Use(middleware.AuthMiddleware(a.AuthSvc))
 		authorized.Use(middleware.RBACMiddleware(a.AuthSvc))
+		authorized.Use(middleware.AuditMiddleware(a.DB, a.Log, &a.Cfg.Security))
 		{
 			// 集群管理
 			clusterHandler := handler.NewClusterHandler(a.ClusterMgr)
