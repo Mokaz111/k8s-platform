@@ -13,6 +13,9 @@ import {
   DatabaseOutlined,
   CloudServerOutlined,
   FileTextOutlined,
+  SafetyOutlined,
+  TeamOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { logout } from '@/slices/userSlice';
@@ -145,6 +148,35 @@ const BasicLayout: React.FC = () => {
                 path: '/pods/logs',
                 name: 'Pod 日志',
                 icon: <FileTextOutlined />,
+              },
+            ],
+          },
+          {
+            path: '/rbac',
+            name: '权限管理',
+            icon: <SafetyOutlined />,
+            routes: [
+              {
+                path: '/rbac/users',
+                name: '用户管理',
+                icon: <TeamOutlined />,
+              },
+              {
+                path: '/rbac/roles',
+                name: '角色管理',
+                icon: <SafetyOutlined />,
+              },
+            ],
+          },
+          {
+            path: '/audit',
+            name: '审计日志',
+            icon: <AuditOutlined />,
+            routes: [
+              {
+                path: '/audit/list',
+                name: '操作日志',
+                icon: <AuditOutlined />,
               },
             ],
           },

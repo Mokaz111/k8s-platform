@@ -7,6 +7,7 @@ import { clusterApi } from '@/app/services/cluster';
 import { resourceApi } from '@/app/services/resource';
 import { versionApi } from '@/app/services/version';
 import { backupApi } from '@/app/services/backup';
+import { rbacApi } from '@/app/services/rbac';
 
 export const store = configureStore({
   reducer: {
@@ -17,13 +18,15 @@ export const store = configureStore({
     [resourceApi.reducerPath]: resourceApi.reducer,
     [versionApi.reducerPath]: versionApi.reducer,
     [backupApi.reducerPath]: backupApi.reducer,
+    [rbacApi.reducerPath]: rbacApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(clusterApi.middleware)
       .concat(resourceApi.middleware)
       .concat(versionApi.middleware)
-      .concat(backupApi.middleware),
+      .concat(backupApi.middleware)
+      .concat(rbacApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

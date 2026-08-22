@@ -10,6 +10,9 @@ import ResourceEdit from '@/pages/resources/[code]/[apiVersion]/[kind]/[namespac
 import BackupList from '@/pages/backups/list';
 import BackupCreate from '@/pages/backups/create';
 import PodLogsPage from '@/pages/pods/logs';
+import AuditLogList from '@/pages/audit/list';
+import UserList from '@/pages/users/list';
+import RoleList from '@/pages/roles/list';
 import { store } from '@/app/store';
 
 const authGuard = () => {
@@ -120,6 +123,36 @@ export const router = createBrowserRouter([
           {
             path: 'logs',
             element: <PodLogsPage />,
+          },
+        ],
+      },
+      {
+        path: 'rbac',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/rbac/users" replace />,
+          },
+          {
+            path: 'users',
+            element: <UserList />,
+          },
+          {
+            path: 'roles',
+            element: <RoleList />,
+          },
+        ],
+      },
+      {
+        path: 'audit',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/audit/list" replace />,
+          },
+          {
+            path: 'list',
+            element: <AuditLogList />,
           },
         ],
       },
