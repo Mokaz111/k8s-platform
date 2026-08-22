@@ -53,7 +53,7 @@ const BasicLayout: React.FC = () => {
   const { data, isLoading } = useListClustersQuery(undefined, {
     skip: !token,
   });
-  const clusters = data?.list || [];
+  const clusters = data?.items || [];
 
   useEffect(() => {
     if (!selectedClusterCode && clusters.length > 0) {

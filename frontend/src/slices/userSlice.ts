@@ -2,12 +2,33 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import request from '@/app/services/request';
 import { AppDispatch } from '@/app/store';
 
+export type ScopeType = 'platform' | 'cluster' | 'namespace';
+
+// 当前用户的角色绑定信息（含数据范围）
+export interface CurrentUserRole {
+  role_id: number;
+  role_code: string;
+  role_name: string;
+  scope_type: ScopeType;
+  cluster_code?: string;
+  namespace?: string;
+}
+
 export interface CurrentUser {
-  id?: string;
+  id?: number | string;
   username?: string;
-  nickname?: string;
+  display_name?: string;
+  nickname?: string; // 兼容旧字段
   avatar?: string;
   email?: string;
+  phone?: string;
+  auth_source?: string;
+  status?: number;
+  last_login_at?: string;
+  last_login_ip?: string;
+  roles?: CurrentUserRole[];
+  perms?: string[]; // 权限点 code 列表（如 cluster:create）
+  is_platform_admin?: boolean;
 }
 
 export interface UserState {
@@ -20,6 +41,14 @@ const initialState: UserState = {
   currentUser: null,
 };
 
+// 后端统一响应 envelope（request.ts 不做解包，这里手动取 data 字段）
+interface ApiEnvelope<T> {
+  code: number;
+  message: string;
+  data: T;
+  trace_id?: string;
+}
+
 interface LoginParams {
   username: string;
   password: string;
@@ -27,7 +56,8 @@ interface LoginParams {
 
 interface LoginResponse {
   token: string;
-  user: CurrentUser;
+  refresh_token?: string;
+  user?: CurrentUser;
 }
 
 export const login = createAsyncThunk<
@@ -35,17 +65,18 @@ export const login = createAsyncThunk<
   LoginParams,
   { dispatch: AppDispatch }
 >('user/login', async (params) => {
-  const res = await request.post<LoginResponse>('/auth/login', params);
-  return res.data;
+  const res = await request.post<ApiEnvelope<LoginResponse>>('/auth/login', params);
+  return res.data.data;
 });
 
+// fetchCurrentUser 调 /auth/me（CurrentUserHandler 返回 user + roles + perms）
 export const fetchCurrentUser = createAsyncThunk<
   CurrentUser,
   void,
   { dispatch: AppDispatch }
 >('user/fetchCurrentUser', async () => {
-  const res = await request.get<CurrentUser>('/users/me');
-  return res.data;
+  const res = await request.get<ApiEnvelope<CurrentUser>>('/auth/me');
+  return res.data.data;
 });
 
 const userSlice = createSlice({
@@ -73,8 +104,11 @@ const userSlice = createSlice({
     builder
       .addCase(login.fulfilled, (state, action) => {
         state.token = action.payload.token;
-        state.currentUser = action.payload.user;
         localStorage.setItem('token', action.payload.token);
+        // 后端登录响应可能不包含 user 详情，则保留 null，由 fetchCurrentUser 补全
+        if (action.payload.user) {
+          state.currentUser = action.payload.user;
+        }
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.currentUser = action.payload;

@@ -391,10 +391,10 @@ const BackupList: React.FC = () => {
             新建备份
           </Button>,
         ]}
-        dataSource={data?.list || []}
+        dataSource={data?.items || []}
         pagination={{
-          current: data?.page || 1,
-          pageSize: data?.size || 10,
+          current: filters.page || 1,
+          pageSize: filters.size || 10,
           total: data?.total || 0,
           showSizeChanger: true,
           onChange: (page, size) => setFilters((prev) => ({ ...prev, page, size })),

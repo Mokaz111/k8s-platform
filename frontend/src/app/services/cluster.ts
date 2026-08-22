@@ -20,10 +20,8 @@ export interface ListClustersParams {
 }
 
 export interface ListClustersResponse {
-  list: Cluster[];
+  items: Cluster[];
   total: number;
-  page: number;
-  size: number;
 }
 
 export interface ImportClusterData {
@@ -63,7 +61,7 @@ export const clusterApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.list.map(({ code }) => ({ type: 'Cluster' as const, id: code })),
+              ...result.items.map(({ code }) => ({ type: 'Cluster' as const, id: code })),
               { type: 'Cluster', id: 'LIST' },
             ]
           : [{ type: 'Cluster', id: 'LIST' }],

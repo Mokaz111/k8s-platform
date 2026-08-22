@@ -258,10 +258,10 @@ const ClusterList: React.FC = () => {
             导入集群
           </Button>,
         ]}
-        dataSource={data?.list || []}
+        dataSource={data?.items || []}
         pagination={{
-          current: data?.page || 1,
-          pageSize: data?.size || 10,
+          current: queryParams.page || 1,
+          pageSize: queryParams.size || 10,
           total: data?.total || 0,
           defaultPageSize: 10,
           showSizeChanger: true,

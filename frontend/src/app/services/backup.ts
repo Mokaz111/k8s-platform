@@ -34,10 +34,8 @@ export interface ListBackupsParams {
 }
 
 export interface ListBackupsResponse {
-  list: Backup[];
+  items: Backup[];
   total: number;
-  page: number;
-  size: number;
 }
 
 export interface CreateBackupBody {
@@ -78,7 +76,7 @@ export const backupApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.list.map(({ id }) => ({ type: 'Backup' as const, id })),
+              ...result.items.map(({ id }) => ({ type: 'Backup' as const, id })),
               { type: 'Backup', id: 'LIST' },
             ]
           : [{ type: 'Backup', id: 'LIST' }],
