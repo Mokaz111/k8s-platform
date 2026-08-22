@@ -1,0 +1,346 @@
+{
+  "data": [
+    {
+      "id": "page-cluster-overview",
+      "title": "集群总览",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": -12,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-f5616354",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/cluster-overview.html",
+        "interactions": [
+          {
+            "domId": "nav-resources",
+            "targetPageId": "page-resource-list",
+            "hideEdge": true,
+            "transitionLabel": "资源管理"
+          },
+          {
+            "domId": "nav-backups",
+            "targetPageId": "page-backup-list",
+            "hideEdge": true,
+            "transitionLabel": "备份管理"
+          },
+          {
+            "domId": "nav-plugins",
+            "targetPageId": "page-plugin-center",
+            "hideEdge": true,
+            "transitionLabel": "插件中心"
+          },
+          {
+            "domId": "cta-import-cluster",
+            "targetPageId": "page-cluster-import",
+            "hideEdge": false,
+            "transitionLabel": "导入集群"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-cluster-import",
+      "title": "导入集群",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 480,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-1117028a",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/cluster-import.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "btn-cancel",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "取消"
+          },
+          {
+            "domId": "btn-save-success",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "保存成功"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-resource-list",
+      "title": "资源对象列表",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 960,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-69a79819",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/resource-list.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "row-edit-deployment",
+            "targetPageId": "page-resource-edit",
+            "hideEdge": false,
+            "transitionLabel": "编辑 YAML"
+          },
+          {
+            "domId": "link-version-history",
+            "targetPageId": "page-version-history",
+            "hideEdge": false,
+            "transitionLabel": "版本历史"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-resource-edit",
+      "title": "YAML 编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 1440,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-046d6c09",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/resource-edit.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "btn-back-to-list",
+            "targetPageId": "page-resource-list",
+            "hideEdge": true,
+            "transitionLabel": "返回列表"
+          },
+          {
+            "domId": "link-versions",
+            "targetPageId": "page-version-history",
+            "hideEdge": false,
+            "transitionLabel": "版本历史"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-version-history",
+      "title": "版本历史",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 1920,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-a8c6f923",
+          "measuredAt": 1787338063012
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/version-history.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "btn-back-to-edit",
+            "targetPageId": "page-resource-edit",
+            "hideEdge": true,
+            "transitionLabel": "返回编辑"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-backup-list",
+      "title": "备份列表",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 2400,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-9cd9c751",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/backup-list.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "cta-new-backup",
+            "targetPageId": "page-backup-create",
+            "hideEdge": false,
+            "transitionLabel": "新建备份"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-backup-create",
+      "title": "新建备份",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 2880,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-4cdf02f1",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/backup-create.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "btn-cancel-backup",
+            "targetPageId": "page-backup-list",
+            "hideEdge": true,
+            "transitionLabel": "取消"
+          },
+          {
+            "domId": "btn-create-backup",
+            "targetPageId": "page-backup-list",
+            "hideEdge": true,
+            "transitionLabel": "创建备份"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-plugin-center",
+      "title": "插件中心",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1787327800000,
+      "canvasData": {
+        "x": 3360,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-5dd3c629",
+          "measuredAt": 1787334728272
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/plugin-center.html",
+        "interactions": [
+          {
+            "domId": "nav-overview",
+            "targetPageId": "page-cluster-overview",
+            "hideEdge": true,
+            "transitionLabel": "概览"
+          },
+          {
+            "domId": "nav-resources",
+            "targetPageId": "page-resource-list",
+            "hideEdge": true,
+            "transitionLabel": "资源管理"
+          },
+          {
+            "domId": "nav-backups",
+            "targetPageId": "page-backup-list",
+            "hideEdge": true,
+            "transitionLabel": "备份管理"
+          },
+          {
+            "domId": "nav-plugins",
+            "targetPageId": "page-plugin-center",
+            "hideEdge": true,
+            "transitionLabel": "插件中心"
+          }
+        ]
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": false,
+    "deviceType": "desktop",
+    "projectName": "K8S 多集群管理平台",
+    "designLibrary": null
+  }
+}

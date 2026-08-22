@@ -1,0 +1,94 @@
+{
+  "root": {
+    "nodeId": "gen-project-shell",
+    "kind": "project-shell",
+    "pageIds": [],
+    "output": "partials/project-shell.html",
+    "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+    "privateRegions": [],
+    "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+      "status": "generated",
+      "children": [
+      {
+        "nodeId": "gen-cluster-overview",
+        "kind": "page-leaf",
+        "pageIds": ["page-cluster-overview"],
+        "output": "pages/cluster-overview.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["dashboard-cards", "cluster-table", "quick-actions"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-cluster-import",
+        "kind": "page-leaf",
+        "pageIds": ["page-cluster-import"],
+        "output": "pages/cluster-import.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["import-form", "connection-test"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-resource-list",
+        "kind": "page-leaf",
+        "pageIds": ["page-resource-list"],
+        "output": "pages/resource-list.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["filter-bar", "resource-table", "pagination"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-resource-edit",
+        "kind": "page-leaf",
+        "pageIds": ["page-resource-edit"],
+        "output": "pages/resource-edit.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["yaml-editor", "action-bar", "metadata-panel"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-version-history",
+        "kind": "page-leaf",
+        "pageIds": ["page-version-history"],
+        "output": "pages/version-history.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["version-timeline", "diff-panel", "rollback-bar"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-backup-list",
+        "kind": "page-leaf",
+        "pageIds": ["page-backup-list"],
+        "output": "pages/backup-list.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["backup-table", "storage-summary"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-backup-create",
+        "kind": "page-leaf",
+        "pageIds": ["page-backup-create"],
+        "output": "pages/backup-create.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["backup-form", "target-selector"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      },
+      {
+        "nodeId": "gen-plugin-center",
+        "kind": "page-leaf",
+        "pageIds": ["page-plugin-center"],
+        "output": "pages/plugin-center.html",
+        "sharedRegions": ["sidebar", "top-header", "main-scroll-frame", "page-title-bar"],
+        "privateRegions": ["plugin-grid", "capability-list"],
+        "mutableSlots": ["pageTitle", "activeNavKey", "mainContent"],
+        "status": "generated"
+      }
+    ]
+  }
+}

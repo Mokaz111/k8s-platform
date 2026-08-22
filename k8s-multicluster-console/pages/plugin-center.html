@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>插件中心</title>
+    <style id="theme-vars">
+/* Volcengine-style professional cloud console design tokens */
+/* Brand prefix: volcano */
+
+:root {
+  --volcano-background: #f8fafc;
+  --volcano-foreground: #0f172a;
+  --volcano-card: #ffffff;
+  --volcano-card-foreground: #0f172a;
+  --volcano-popover: #ffffff;
+  --volcano-popover-foreground: #0f172a;
+  --volcano-primary: #2563eb;
+  --volcano-primary-foreground: #ffffff;
+  --volcano-muted: #f1f5f9;
+  --volcano-muted-foreground: #64748b;
+  --volcano-destructive: #ef4444;
+  --volcano-destructive-foreground: #ffffff;
+  --volcano-border: #e2e8f0;
+  --volcano-input: #e2e8f0;
+  --volcano-ring: #2563eb;
+
+  --volcano-sidebar-background: #0f172a;
+  --volcano-sidebar-foreground: #cbd5e1;
+  --volcano-sidebar-primary: #2563eb;
+  --volcano-sidebar-primary-foreground: #ffffff;
+  --volcano-sidebar-accent: #1e293b;
+  --volcano-sidebar-accent-foreground: #f8fafc;
+  --volcano-sidebar-border: #1e293b;
+
+  --volcano-state-success: #22c55e;
+  --volcano-state-success-bg: #f0fdf4;
+  --volcano-state-warning: #f59e0b;
+  --volcano-state-warning-bg: #fffbeb;
+  --volcano-state-error: #ef4444;
+  --volcano-state-error-bg: #fef2f2;
+  --volcano-state-info: #3b82f6;
+  --volcano-state-info-bg: #eff6ff;
+
+  --volcano-radius-small: 4px;
+  --volcano-radius-medium: 8px;
+  --volcano-radius-large: 12px;
+
+  --volcano-font-primary: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --volcano-font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+
+  --volcano-shadow-1: 0 1px 2px 0 rgba(15, 23, 42, 0.05), 0 1px 1px 0 rgba(15, 23, 42, 0.03);
+  --volcano-shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --volcano-shadow-3: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+
+  /* Semantic aliases */
+  --color-background: var(--volcano-background);
+  --color-foreground: var(--volcano-foreground);
+  --color-card: var(--volcano-card);
+  --color-card-foreground: var(--volcano-card-foreground);
+  --color-popover: var(--volcano-popover);
+  --color-popover-foreground: var(--volcano-popover-foreground);
+  --color-primary: var(--volcano-primary);
+  --color-primary-foreground: var(--volcano-primary-foreground);
+  --color-secondary: var(--volcano-muted);
+  --color-secondary-foreground: var(--volcano-foreground);
+  --color-muted: var(--volcano-muted);
+  --color-muted-foreground: var(--volcano-muted-foreground);
+  --color-accent: var(--volcano-primary);
+  --color-accent-foreground: var(--volcano-primary-foreground);
+  --color-destructive: var(--volcano-destructive);
+  --color-destructive-foreground: var(--volcano-destructive-foreground);
+  --color-border: var(--volcano-border);
+  --color-input: var(--volcano-input);
+  --color-ring: var(--volcano-ring);
+  --radius-sm: var(--volcano-radius-small);
+  --radius-md: var(--volcano-radius-medium);
+  --radius-lg: var(--volcano-radius-large);
+}
+
+.dark {
+  --volcano-background: #0b1120;
+  --volcano-foreground: #f8fafc;
+  --volcano-card: #151d2e;
+  --volcano-card-foreground: #f8fafc;
+  --volcano-popover: #151d2e;
+  --volcano-popover-foreground: #f8fafc;
+  --volcano-primary: #3b82f6;
+  --volcano-primary-foreground: #ffffff;
+  --volcano-muted: #1e293b;
+  --volcano-muted-foreground: #94a3b8;
+  --volcano-destructive: #ef4444;
+  --volcano-destructive-foreground: #ffffff;
+  --volcano-border: #1e293b;
+  --volcano-input: #1e293b;
+  --volcano-ring: #3b82f6;
+
+  --volcano-sidebar-background: #020617;
+  --volcano-sidebar-foreground: #94a3b8;
+  --volcano-sidebar-primary: #3b82f6;
+  --volcano-sidebar-primary-foreground: #ffffff;
+  --volcano-sidebar-accent: #1e293b;
+  --volcano-sidebar-accent-foreground: #f8fafc;
+  --volcano-sidebar-border: #1e293b;
+
+  --volcano-state-success: #4ade80;
+  --volcano-state-success-bg: #064e3b;
+  --volcano-state-warning: #fbbf24;
+  --volcano-state-warning-bg: #78350f;
+  --volcano-state-error: #f87171;
+  --volcano-state-error-bg: #7f1d1d;
+  --volcano-state-info: #60a5fa;
+  --volcano-state-info-bg: #1e3a8a;
+
+  --volcano-shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.15);
+  --volcano-shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.35);
+  --volcano-shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+/* Typography classes */
+.volcano-display {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(40px, 6vw, 88px);
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.volcano-h1 {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(28px, 3.5vw, 48px);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.volcano-h2 {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(22px, 2.4vw, 32px);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.volcano-h3 {
+  font-family: var(--volcano-font-primary);
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.volcano-body {
+  font-family: var(--volcano-font-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.volcano-body-large {
+  font-family: var(--volcano-font-primary);
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.volcano-caption {
+  font-family: var(--volcano-font-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+.volcano-mono {
+  font-family: var(--volcano-font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--volcano-font-primary);
+  background-color: var(--volcano-background);
+  color: var(--volcano-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--volcano-background);
+    --color-foreground: var(--volcano-foreground);
+    --color-card: var(--volcano-card);
+    --color-card-foreground: var(--volcano-card-foreground);
+    --color-popover: var(--volcano-popover);
+    --color-popover-foreground: var(--volcano-popover-foreground);
+    --color-primary: var(--volcano-primary);
+    --color-primary-foreground: var(--volcano-primary-foreground);
+    --color-muted: var(--volcano-muted);
+    --color-muted-foreground: var(--volcano-muted-foreground);
+    --color-destructive: var(--volcano-destructive);
+    --color-destructive-foreground: var(--volcano-destructive-foreground);
+    --color-border: var(--volcano-border);
+    --color-input: var(--volcano-input);
+    --color-ring: var(--volcano-ring);
+    --color-sidebar-foreground: var(--volcano-sidebar-foreground);
+    --color-sidebar-primary: var(--volcano-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--volcano-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--volcano-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--volcano-sidebar-accent-foreground);
+    --color-secondary: var(--color-secondary);
+    --color-secondary-foreground: var(--color-secondary-foreground);
+    --color-accent: var(--color-accent);
+    --color-accent-foreground: var(--color-accent-foreground);
+    --radius-sm: var(--volcano-radius-small);
+    --radius-md: var(--volcano-radius-medium);
+    --radius-lg: var(--volcano-radius-large);
+  }
+  @layer base {
+    body { background: var(--volcano-background); color: var(--volcano-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--volcano-background); }
+      .text-background { color: var(--volcano-background); }
+      .border-background { border-color: var(--volcano-background); }
+      .ring-background { --tw-ring-color: var(--volcano-background); }
+      .bg-foreground { background-color: var(--volcano-foreground); }
+      .text-foreground { color: var(--volcano-foreground); }
+      .border-foreground { border-color: var(--volcano-foreground); }
+      .ring-foreground { --tw-ring-color: var(--volcano-foreground); }
+      .bg-card { background-color: var(--volcano-card); }
+      .text-card { color: var(--volcano-card); }
+      .border-card { border-color: var(--volcano-card); }
+      .ring-card { --tw-ring-color: var(--volcano-card); }
+      .bg-card-foreground { background-color: var(--volcano-card-foreground); }
+      .text-card-foreground { color: var(--volcano-card-foreground); }
+      .border-card-foreground { border-color: var(--volcano-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--volcano-card-foreground); }
+      .bg-popover { background-color: var(--volcano-popover); }
+      .text-popover { color: var(--volcano-popover); }
+      .border-popover { border-color: var(--volcano-popover); }
+      .ring-popover { --tw-ring-color: var(--volcano-popover); }
+      .bg-popover-foreground { background-color: var(--volcano-popover-foreground); }
+      .text-popover-foreground { color: var(--volcano-popover-foreground); }
+      .border-popover-foreground { border-color: var(--volcano-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--volcano-popover-foreground); }
+      .bg-primary { background-color: var(--volcano-primary); }
+      .text-primary { color: var(--volcano-primary); }
+      .border-primary { border-color: var(--volcano-primary); }
+      .ring-primary { --tw-ring-color: var(--volcano-primary); }
+      .bg-primary-foreground { background-color: var(--volcano-primary-foreground); }
+      .text-primary-foreground { color: var(--volcano-primary-foreground); }
+      .border-primary-foreground { border-color: var(--volcano-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--volcano-primary-foreground); }
+      .bg-muted { background-color: var(--volcano-muted); }
+      .text-muted { color: var(--volcano-muted); }
+      .border-muted { border-color: var(--volcano-muted); }
+      .ring-muted { --tw-ring-color: var(--volcano-muted); }
+      .bg-muted-foreground { background-color: var(--volcano-muted-foreground); }
+      .text-muted-foreground { color: var(--volcano-muted-foreground); }
+      .border-muted-foreground { border-color: var(--volcano-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--volcano-muted-foreground); }
+      .bg-destructive { background-color: var(--volcano-destructive); }
+      .text-destructive { color: var(--volcano-destructive); }
+      .border-destructive { border-color: var(--volcano-destructive); }
+      .ring-destructive { --tw-ring-color: var(--volcano-destructive); }
+      .bg-destructive-foreground { background-color: var(--volcano-destructive-foreground); }
+      .text-destructive-foreground { color: var(--volcano-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--volcano-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--volcano-destructive-foreground); }
+      .bg-border { background-color: var(--volcano-border); }
+      .text-border { color: var(--volcano-border); }
+      .border-border { border-color: var(--volcano-border); }
+      .ring-border { --tw-ring-color: var(--volcano-border); }
+      .bg-input { background-color: var(--volcano-input); }
+      .text-input { color: var(--volcano-input); }
+      .border-input { border-color: var(--volcano-input); }
+      .ring-input { --tw-ring-color: var(--volcano-input); }
+      .bg-ring { background-color: var(--volcano-ring); }
+      .text-ring { color: var(--volcano-ring); }
+      .border-ring { border-color: var(--volcano-ring); }
+      .ring-ring { --tw-ring-color: var(--volcano-ring); }
+      .bg-sidebar-foreground { background-color: var(--volcano-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--volcano-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--volcano-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--volcano-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--volcano-sidebar-primary); }
+      .text-sidebar-primary { color: var(--volcano-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--volcano-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--volcano-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--volcano-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--volcano-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--volcano-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--volcano-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--volcano-sidebar-accent); }
+      .text-sidebar-accent { color: var(--volcano-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--volcano-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--volcano-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--volcano-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--volcano-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--volcano-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--volcano-sidebar-accent-foreground); }
+      .bg-secondary { background-color: var(--color-secondary); }
+      .text-secondary { color: var(--color-secondary); }
+      .border-secondary { border-color: var(--color-secondary); }
+      .ring-secondary { --tw-ring-color: var(--color-secondary); }
+      .bg-secondary-foreground { background-color: var(--color-secondary-foreground); }
+      .text-secondary-foreground { color: var(--color-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--color-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--color-secondary-foreground); }
+      .bg-accent { background-color: var(--color-accent); }
+      .text-accent { color: var(--color-accent); }
+      .border-accent { border-color: var(--color-accent); }
+      .ring-accent { --tw-ring-color: var(--color-accent); }
+      .bg-accent-foreground { background-color: var(--color-accent-foreground); }
+      .text-accent-foreground { color: var(--color-accent-foreground); }
+      .border-accent-foreground { border-color: var(--color-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--color-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+<!-- Shared project shell for K8S multi-cluster admin console -->
+<!-- Mutable slots: pageTitle, activeNavKey, mainContent, pageActions -->
+
+<div class="flex h-screen w-full overflow-hidden bg-background text-foreground" id="app-shell">
+  <!-- Sidebar -->
+  <aside class="flex-shrink-0 flex flex-col w-[240px] bg-[var(--volcano-sidebar-background)] text-[var(--volcano-sidebar-foreground)] border-r border-[var(--volcano-sidebar-border)]">
+    <!-- Logo -->
+    <div class="flex items-center h-14 px-4 border-b border-[var(--volcano-sidebar-border)]">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
+          <i data-lucide="hexagon" class="w-4 h-4"></i>
+        </div>
+        <span class="font-semibold text-[15px] text-[var(--volcano-sidebar-accent-foreground)]">K8S Console</span>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1" id="sidebar-nav">
+      <a href="cluster-overview.html" data-nav-key="overview" data-dom-id="nav-overview" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>概览</span>
+      </a>
+      <a href="cluster-import.html" data-nav-key="clusters" data-dom-id="nav-clusters" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="server" class="w-4 h-4"></i>
+        <span>集群管理</span>
+      </a>
+      <a href="resource-list.html" data-nav-key="resources" data-dom-id="nav-resources" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="boxes" class="w-4 h-4"></i>
+        <span>资源管理</span>
+      </a>
+      <a href="backup-list.html" data-nav-key="backups" data-dom-id="nav-backups" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="archive" class="w-4 h-4"></i>
+        <span>备份管理</span>
+      </a>
+      <a href="plugin-center.html" data-nav-key="plugins" data-dom-id="nav-plugins" data-active="true" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium bg-[var(--volcano-sidebar-primary)] text-[var(--volcano-sidebar-primary-foreground)] transition-colors">
+        <i data-lucide="plug" class="w-4 h-4"></i>
+        <span>插件中心</span>
+      </a>
+      <a href="#" data-nav-key="settings" data-dom-id="nav-settings" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+        <span>系统设置</span>
+      </a>
+    </nav>
+
+    <!-- Sidebar footer -->
+    <div class="px-3 py-3 border-t border-[var(--volcano-sidebar-border)]">
+      <div class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-[var(--volcano-sidebar-foreground)] opacity-80">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+        <span>v1.0.0 · Plugin Ready</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="flex-1 flex flex-col min-w-0 bg-background">
+    <!-- Top header -->
+    <header class="flex-shrink-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 z-10">
+      <div class="flex items-center gap-3">
+        <!-- Cluster selector -->
+        <div class="relative">
+          <button data-dom-id="cluster-selector" class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors text-[13px]">
+            <i data-lucide="database" class="w-3.5 h-3.5 text-muted-foreground"></i>
+            <span class="font-medium">prod-cluster-01</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-muted-foreground"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Global search -->
+        <button data-dom-id="global-search" class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors text-[13px] text-muted-foreground">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i>
+          <span>搜索资源...</span>
+          <kbd class="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-muted text-[11px] border border-border">⌘K</kbd>
+        </button>
+        <!-- Notifications -->
+        <button data-dom-id="notifications" class="relative p-2 rounded-md border border-border bg-background hover:bg-muted transition-colors">
+          <i data-lucide="bell" class="w-4 h-4 text-muted-foreground"></i>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive"></span>
+        </button>
+        <!-- User avatar -->
+        <button data-dom-id="user-avatar" class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
+          <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[12px] font-semibold">SA</div>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-muted-foreground"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page title bar -->
+    <div class="flex-shrink-0 bg-card border-b border-border px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-semibold text-foreground">插件中心</h1>
+          <p class="mt-0.5 text-[13px] text-muted-foreground">K8S 多集群管理平台 · plugins</p>
+        </div>
+        <button type="button" data-dom-id="install-plugin" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>安装插件</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main scroll content -->
+    <main class="flex-1 overflow-y-auto p-6 bg-background">
+      <div class="space-y-6">
+        <!-- Search and filter tabs -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="relative w-full sm:w-[360px]">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+            <input type="text" placeholder="搜索插件名称或能力..." class="w-full pl-9 pr-3 py-2 rounded-md border border-border bg-card text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+          </div>
+          <div class="inline-flex rounded-lg border border-border bg-card p-0.5" role="tablist">
+            <button type="button" role="tab" aria-selected="true" class="px-3 py-1.5 rounded-md text-[13px] font-medium bg-primary text-primary-foreground">全部</button>
+            <button type="button" role="tab" aria-selected="false" class="px-3 py-1.5 rounded-md text-[13px] font-medium text-muted-foreground hover:bg-muted transition-colors">已安装</button>
+            <button type="button" role="tab" aria-selected="false" class="px-3 py-1.5 rounded-md text-[13px] font-medium text-muted-foreground hover:bg-muted transition-colors">可安装</button>
+          </div>
+        </div>
+
+        <!-- Plugin grid -->
+        <div id="plugin-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- 备份增强 -->
+          <div class="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col gap-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <i data-lucide="archive-restore" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-[15px] font-semibold text-foreground">备份增强</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--volcano-state-info-bg)] text-[var(--volcano-state-info)]">官方</span>
+                  </div>
+                  <p class="text-[12px] text-muted-foreground font-mono">v2.1.0</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer" aria-label="启用备份增强">
+                <input type="checkbox" checked class="sr-only peer">
+                <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div id="capability-list" class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">定时备份</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">快照管理</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">跨集群恢复</span>
+            </div>
+            <p class="text-[13px] text-muted-foreground leading-relaxed flex-1">为工作负载与 PV 提供应用级备份、快照调度与跨集群灾难恢复能力。</p>
+          </div>
+
+          <!-- 审计日志 -->
+          <div class="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col gap-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <i data-lucide="file-text" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-[15px] font-semibold text-foreground">审计日志</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--volcano-state-info-bg)] text-[var(--volcano-state-info)]">官方</span>
+                  </div>
+                  <p class="text-[12px] text-muted-foreground font-mono">v1.4.2</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer" aria-label="启用审计日志">
+                <input type="checkbox" checked class="sr-only peer">
+                <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">操作审计</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">合规报表</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">日志归档</span>
+            </div>
+            <p class="text-[13px] text-muted-foreground leading-relaxed flex-1">记录 API Server 与用户操作事件，支持实时检索、合规报表与长期归档。</p>
+          </div>
+
+          <!-- 成本分析 -->
+          <div class="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col gap-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-[15px] font-semibold text-foreground">成本分析</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--volcano-state-warning-bg)] text-[var(--volcano-state-warning)]">社区</span>
+                  </div>
+                  <p class="text-[12px] text-muted-foreground font-mono">v0.8.5</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer" aria-label="启用成本分析">
+                <input type="checkbox" class="sr-only peer">
+                <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">资源计费</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">用量分析</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">成本预测</span>
+            </div>
+            <p class="text-[13px] text-muted-foreground leading-relaxed flex-1">按 Namespace、工作负载与标签分摊云资源成本，并提供趋势预测与优化建议。</p>
+          </div>
+
+          <!-- 网络策略管理 -->
+          <div class="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col gap-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <i data-lucide="shield" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-[15px] font-semibold text-foreground">网络策略管理</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--volcano-state-info-bg)] text-[var(--volcano-state-info)]">官方</span>
+                  </div>
+                  <p class="text-[12px] text-muted-foreground font-mono">v1.0.3</p>
+                </div>
+              </div>
+              <button type="button" class="inline-flex items-center px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 transition-colors">安装</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">Cilium</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">策略下发</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">微隔离</span>
+            </div>
+            <p class="text-[13px] text-muted-foreground leading-relaxed flex-1">可视化编排 NetworkPolicy 与 CiliumPolicy，实现零信任微隔离与流量审计。</p>
+          </div>
+
+          <!-- 多集群同步 -->
+          <div class="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col gap-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-[15px] font-semibold text-foreground">多集群同步</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--volcano-state-warning-bg)] text-[var(--volcano-state-warning)]">社区</span>
+                  </div>
+                  <p class="text-[12px] text-muted-foreground font-mono">v1.1.0</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer" aria-label="启用多集群同步">
+                <input type="checkbox" checked class="sr-only peer">
+                <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">GitOps</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">漂移检测</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">版本回滚</span>
+            </div>
+            <p class="text-[13px] text-muted-foreground leading-relaxed flex-1">基于 GitOps 实现跨集群资源同步、配置漂移检测与一键回滚。</p>
+          </div>
+
+          <!-- 告警通知 -->
+          <div class="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col gap-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-[15px] font-semibold text-foreground">告警通知</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--volcano-state-info-bg)] text-[var(--volcano-state-info)]">官方</span>
+                  </div>
+                  <p class="text-[12px] text-muted-foreground font-mono">v3.0.1</p>
+                </div>
+              </div>
+              <button type="button" class="inline-flex items-center px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 transition-colors">安装</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">告警收敛</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">多渠道</span>
+              <span class="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">值班组</span>
+            </div>
+            <p class="text-[13px] text-muted-foreground leading-relaxed flex-1">对接 Prometheus Alertmanager，提供告警收敛、分级路由与企业微信/钉钉/邮件通知。</p>
+          </div>
+        </div>
+
+        <!-- SDK promo card -->
+        <section id="sdk-promo" class="bg-card border border-border rounded-xl shadow-sm p-6">
+          <div class="flex flex-col md:flex-row md:items-start gap-5">
+            <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+              <i data-lucide="code-2" class="w-6 h-6"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-[16px] font-semibold text-foreground">插件开发 SDK</h2>
+                  <p class="mt-1 text-[13px] text-muted-foreground">扩展 K8S Console 的开放架构与接入点</p>
+                </div>
+                <button type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-border bg-background hover:bg-muted transition-colors text-[13px] font-medium text-foreground">
+                  <i data-lucide="book-open" class="w-4 h-4 text-muted-foreground"></i>
+                  <span>查看文档</span>
+                </button>
+              </div>
+              <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="rounded-lg border border-border bg-background p-3">
+                  <i data-lucide="layout-dashboard" class="w-4 h-4 text-primary mb-2"></i>
+                  <p class="text-[13px] font-medium text-foreground">自定义 Dashboard 面板</p>
+                  <p class="text-[12px] text-muted-foreground mt-0.5">注入 React 组件到控制台首页</p>
+                </div>
+                <div class="rounded-lg border border-border bg-background p-3">
+                  <i data-lucide="box" class="w-4 h-4 text-primary mb-2"></i>
+                  <p class="text-[13px] font-medium text-foreground">CRD 控制器扩展</p>
+                  <p class="text-[12px] text-muted-foreground mt-0.5">监听并管理自定义资源</p>
+                </div>
+                <div class="rounded-lg border border-border bg-background p-3">
+                  <i data-lucide="webhook" class="w-4 h-4 text-primary mb-2"></i>
+                  <p class="text-[13px] font-medium text-foreground">Webhook 钩子</p>
+                  <p class="text-[12px] text-muted-foreground mt-0.5">接收资源变更事件</p>
+                </div>
+                <div class="rounded-lg border border-border bg-background p-3">
+                  <i data-lucide="network" class="w-4 h-4 text-primary mb-2"></i>
+                  <p class="text-[13px] font-medium text-foreground">多集群事件总线</p>
+                  <p class="text-[12px] text-muted-foreground mt-0.5">跨集群聚合与分发消息</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

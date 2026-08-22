@@ -1,0 +1,191 @@
+/* Volcengine-style professional cloud console design tokens */
+/* Brand prefix: volcano */
+
+:root {
+  --volcano-background: #f8fafc;
+  --volcano-foreground: #0f172a;
+  --volcano-card: #ffffff;
+  --volcano-card-foreground: #0f172a;
+  --volcano-popover: #ffffff;
+  --volcano-popover-foreground: #0f172a;
+  --volcano-primary: #2563eb;
+  --volcano-primary-foreground: #ffffff;
+  --volcano-muted: #f1f5f9;
+  --volcano-muted-foreground: #64748b;
+  --volcano-destructive: #ef4444;
+  --volcano-destructive-foreground: #ffffff;
+  --volcano-border: #e2e8f0;
+  --volcano-input: #e2e8f0;
+  --volcano-ring: #2563eb;
+
+  --volcano-sidebar-background: #0f172a;
+  --volcano-sidebar-foreground: #cbd5e1;
+  --volcano-sidebar-primary: #2563eb;
+  --volcano-sidebar-primary-foreground: #ffffff;
+  --volcano-sidebar-accent: #1e293b;
+  --volcano-sidebar-accent-foreground: #f8fafc;
+  --volcano-sidebar-border: #1e293b;
+
+  --volcano-state-success: #22c55e;
+  --volcano-state-success-bg: #f0fdf4;
+  --volcano-state-warning: #f59e0b;
+  --volcano-state-warning-bg: #fffbeb;
+  --volcano-state-error: #ef4444;
+  --volcano-state-error-bg: #fef2f2;
+  --volcano-state-info: #3b82f6;
+  --volcano-state-info-bg: #eff6ff;
+
+  --volcano-radius-small: 4px;
+  --volcano-radius-medium: 8px;
+  --volcano-radius-large: 12px;
+
+  --volcano-font-primary: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --volcano-font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+
+  --volcano-shadow-1: 0 1px 2px 0 rgba(15, 23, 42, 0.05), 0 1px 1px 0 rgba(15, 23, 42, 0.03);
+  --volcano-shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --volcano-shadow-3: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+
+  /* Semantic aliases */
+  --color-background: var(--volcano-background);
+  --color-foreground: var(--volcano-foreground);
+  --color-card: var(--volcano-card);
+  --color-card-foreground: var(--volcano-card-foreground);
+  --color-popover: var(--volcano-popover);
+  --color-popover-foreground: var(--volcano-popover-foreground);
+  --color-primary: var(--volcano-primary);
+  --color-primary-foreground: var(--volcano-primary-foreground);
+  --color-secondary: var(--volcano-muted);
+  --color-secondary-foreground: var(--volcano-foreground);
+  --color-muted: var(--volcano-muted);
+  --color-muted-foreground: var(--volcano-muted-foreground);
+  --color-accent: var(--volcano-primary);
+  --color-accent-foreground: var(--volcano-primary-foreground);
+  --color-destructive: var(--volcano-destructive);
+  --color-destructive-foreground: var(--volcano-destructive-foreground);
+  --color-border: var(--volcano-border);
+  --color-input: var(--volcano-input);
+  --color-ring: var(--volcano-ring);
+  --radius-sm: var(--volcano-radius-small);
+  --radius-md: var(--volcano-radius-medium);
+  --radius-lg: var(--volcano-radius-large);
+}
+
+.dark {
+  --volcano-background: #0b1120;
+  --volcano-foreground: #f8fafc;
+  --volcano-card: #151d2e;
+  --volcano-card-foreground: #f8fafc;
+  --volcano-popover: #151d2e;
+  --volcano-popover-foreground: #f8fafc;
+  --volcano-primary: #3b82f6;
+  --volcano-primary-foreground: #ffffff;
+  --volcano-muted: #1e293b;
+  --volcano-muted-foreground: #94a3b8;
+  --volcano-destructive: #ef4444;
+  --volcano-destructive-foreground: #ffffff;
+  --volcano-border: #1e293b;
+  --volcano-input: #1e293b;
+  --volcano-ring: #3b82f6;
+
+  --volcano-sidebar-background: #020617;
+  --volcano-sidebar-foreground: #94a3b8;
+  --volcano-sidebar-primary: #3b82f6;
+  --volcano-sidebar-primary-foreground: #ffffff;
+  --volcano-sidebar-accent: #1e293b;
+  --volcano-sidebar-accent-foreground: #f8fafc;
+  --volcano-sidebar-border: #1e293b;
+
+  --volcano-state-success: #4ade80;
+  --volcano-state-success-bg: #064e3b;
+  --volcano-state-warning: #fbbf24;
+  --volcano-state-warning-bg: #78350f;
+  --volcano-state-error: #f87171;
+  --volcano-state-error-bg: #7f1d1d;
+  --volcano-state-info: #60a5fa;
+  --volcano-state-info-bg: #1e3a8a;
+
+  --volcano-shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.15);
+  --volcano-shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.35);
+  --volcano-shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+/* Typography classes */
+.volcano-display {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(40px, 6vw, 88px);
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.volcano-h1 {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(28px, 3.5vw, 48px);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.volcano-h2 {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(22px, 2.4vw, 32px);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.volcano-h3 {
+  font-family: var(--volcano-font-primary);
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.volcano-body {
+  font-family: var(--volcano-font-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.volcano-body-large {
+  font-family: var(--volcano-font-primary);
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.volcano-caption {
+  font-family: var(--volcano-font-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+.volcano-mono {
+  font-family: var(--volcano-font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--volcano-font-primary);
+  background-color: var(--volcano-background);
+  color: var(--volcano-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

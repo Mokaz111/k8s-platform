@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导入集群</title>
+    <style id="theme-vars">
+/* Volcengine-style professional cloud console design tokens */
+/* Brand prefix: volcano */
+
+:root {
+  --volcano-background: #f8fafc;
+  --volcano-foreground: #0f172a;
+  --volcano-card: #ffffff;
+  --volcano-card-foreground: #0f172a;
+  --volcano-popover: #ffffff;
+  --volcano-popover-foreground: #0f172a;
+  --volcano-primary: #2563eb;
+  --volcano-primary-foreground: #ffffff;
+  --volcano-muted: #f1f5f9;
+  --volcano-muted-foreground: #64748b;
+  --volcano-destructive: #ef4444;
+  --volcano-destructive-foreground: #ffffff;
+  --volcano-border: #e2e8f0;
+  --volcano-input: #e2e8f0;
+  --volcano-ring: #2563eb;
+
+  --volcano-sidebar-background: #0f172a;
+  --volcano-sidebar-foreground: #cbd5e1;
+  --volcano-sidebar-primary: #2563eb;
+  --volcano-sidebar-primary-foreground: #ffffff;
+  --volcano-sidebar-accent: #1e293b;
+  --volcano-sidebar-accent-foreground: #f8fafc;
+  --volcano-sidebar-border: #1e293b;
+
+  --volcano-state-success: #22c55e;
+  --volcano-state-success-bg: #f0fdf4;
+  --volcano-state-warning: #f59e0b;
+  --volcano-state-warning-bg: #fffbeb;
+  --volcano-state-error: #ef4444;
+  --volcano-state-error-bg: #fef2f2;
+  --volcano-state-info: #3b82f6;
+  --volcano-state-info-bg: #eff6ff;
+
+  --volcano-radius-small: 4px;
+  --volcano-radius-medium: 8px;
+  --volcano-radius-large: 12px;
+
+  --volcano-font-primary: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --volcano-font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+
+  --volcano-shadow-1: 0 1px 2px 0 rgba(15, 23, 42, 0.05), 0 1px 1px 0 rgba(15, 23, 42, 0.03);
+  --volcano-shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --volcano-shadow-3: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+
+  /* Semantic aliases */
+  --color-background: var(--volcano-background);
+  --color-foreground: var(--volcano-foreground);
+  --color-card: var(--volcano-card);
+  --color-card-foreground: var(--volcano-card-foreground);
+  --color-popover: var(--volcano-popover);
+  --color-popover-foreground: var(--volcano-popover-foreground);
+  --color-primary: var(--volcano-primary);
+  --color-primary-foreground: var(--volcano-primary-foreground);
+  --color-secondary: var(--volcano-muted);
+  --color-secondary-foreground: var(--volcano-foreground);
+  --color-muted: var(--volcano-muted);
+  --color-muted-foreground: var(--volcano-muted-foreground);
+  --color-destructive: var(--volcano-destructive);
+  --color-destructive-foreground: var(--volcano-destructive-foreground);
+  --color-border: var(--volcano-border);
+  --color-input: var(--volcano-input);
+  --color-ring: var(--volcano-ring);
+  --radius-sm: var(--volcano-radius-small);
+  --radius-md: var(--volcano-radius-medium);
+  --radius-lg: var(--volcano-radius-large);
+}
+
+.dark {
+  --volcano-background: #0b1120;
+  --volcano-foreground: #f8fafc;
+  --volcano-card: #151d2e;
+  --volcano-card-foreground: #f8fafc;
+  --volcano-popover: #151d2e;
+  --volcano-popover-foreground: #f8fafc;
+  --volcano-primary: #3b82f6;
+  --volcano-primary-foreground: #ffffff;
+  --volcano-muted: #1e293b;
+  --volcano-muted-foreground: #94a3b8;
+  --volcano-destructive: #ef4444;
+  --volcano-destructive-foreground: #ffffff;
+  --volcano-border: #1e293b;
+  --volcano-input: #1e293b;
+  --volcano-ring: #3b82f6;
+
+  --volcano-sidebar-background: #020617;
+  --volcano-sidebar-foreground: #94a3b8;
+  --volcano-sidebar-primary: #3b82f6;
+  --volcano-sidebar-primary-foreground: #ffffff;
+  --volcano-sidebar-accent: #1e293b;
+  --volcano-sidebar-accent-foreground: #f8fafc;
+  --volcano-sidebar-border: #1e293b;
+
+  --volcano-state-success: #4ade80;
+  --volcano-state-success-bg: #064e3b;
+  --volcano-state-warning: #fbbf24;
+  --volcano-state-warning-bg: #78350f;
+  --volcano-state-error: #f87171;
+  --volcano-state-error-bg: #7f1d1d;
+  --volcano-state-info: #60a5fa;
+  --volcano-state-info-bg: #1e3a8a;
+
+  --volcano-shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.15);
+  --volcano-shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.35);
+  --volcano-shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+/* Typography classes */
+.volcano-display {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(40px, 6vw, 88px);
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.volcano-h1 {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(28px, 3.5vw, 48px);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.volcano-h2 {
+  font-family: var(--volcano-font-primary);
+  font-size: clamp(22px, 2.4vw, 32px);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.volcano-h3 {
+  font-family: var(--volcano-font-primary);
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.volcano-body {
+  font-family: var(--volcano-font-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.volcano-body-large {
+  font-family: var(--volcano-font-primary);
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.volcano-caption {
+  font-family: var(--volcano-font-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+.volcano-mono {
+  font-family: var(--volcano-font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--volcano-font-primary);
+  background-color: var(--volcano-background);
+  color: var(--volcano-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--volcano-background);
+    --color-foreground: var(--volcano-foreground);
+    --color-card: var(--volcano-card);
+    --color-card-foreground: var(--volcano-card-foreground);
+    --color-popover: var(--volcano-popover);
+    --color-popover-foreground: var(--volcano-popover-foreground);
+    --color-primary: var(--volcano-primary);
+    --color-primary-foreground: var(--volcano-primary-foreground);
+    --color-muted: var(--volcano-muted);
+    --color-muted-foreground: var(--volcano-muted-foreground);
+    --color-destructive: var(--volcano-destructive);
+    --color-destructive-foreground: var(--volcano-destructive-foreground);
+    --color-border: var(--volcano-border);
+    --color-input: var(--volcano-input);
+    --color-ring: var(--volcano-ring);
+    --color-sidebar-foreground: var(--volcano-sidebar-foreground);
+    --color-sidebar-primary: var(--volcano-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--volcano-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--volcano-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--volcano-sidebar-accent-foreground);
+    --color-secondary: var(--color-secondary);
+    --color-secondary-foreground: var(--color-secondary-foreground);
+    --color-accent: var(--color-accent);
+    --color-accent-foreground: var(--color-accent-foreground);
+    --radius-sm: var(--volcano-radius-small);
+    --radius-md: var(--volcano-radius-medium);
+    --radius-lg: var(--volcano-radius-large);
+  }
+  @layer base {
+    body { background: var(--volcano-background); color: var(--volcano-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--volcano-background); }
+      .text-background { color: var(--volcano-background); }
+      .border-background { border-color: var(--volcano-background); }
+      .ring-background { --tw-ring-color: var(--volcano-background); }
+      .bg-foreground { background-color: var(--volcano-foreground); }
+      .text-foreground { color: var(--volcano-foreground); }
+      .border-foreground { border-color: var(--volcano-foreground); }
+      .ring-foreground { --tw-ring-color: var(--volcano-foreground); }
+      .bg-card { background-color: var(--volcano-card); }
+      .text-card { color: var(--volcano-card); }
+      .border-card { border-color: var(--volcano-card); }
+      .ring-card { --tw-ring-color: var(--volcano-card); }
+      .bg-card-foreground { background-color: var(--volcano-card-foreground); }
+      .text-card-foreground { color: var(--volcano-card-foreground); }
+      .border-card-foreground { border-color: var(--volcano-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--volcano-card-foreground); }
+      .bg-popover { background-color: var(--volcano-popover); }
+      .text-popover { color: var(--volcano-popover); }
+      .border-popover { border-color: var(--volcano-popover); }
+      .ring-popover { --tw-ring-color: var(--volcano-popover); }
+      .bg-popover-foreground { background-color: var(--volcano-popover-foreground); }
+      .text-popover-foreground { color: var(--volcano-popover-foreground); }
+      .border-popover-foreground { border-color: var(--volcano-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--volcano-popover-foreground); }
+      .bg-primary { background-color: var(--volcano-primary); }
+      .text-primary { color: var(--volcano-primary); }
+      .border-primary { border-color: var(--volcano-primary); }
+      .ring-primary { --tw-ring-color: var(--volcano-primary); }
+      .bg-primary-foreground { background-color: var(--volcano-primary-foreground); }
+      .text-primary-foreground { color: var(--volcano-primary-foreground); }
+      .border-primary-foreground { border-color: var(--volcano-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--volcano-primary-foreground); }
+      .bg-muted { background-color: var(--volcano-muted); }
+      .text-muted { color: var(--volcano-muted); }
+      .border-muted { border-color: var(--volcano-muted); }
+      .ring-muted { --tw-ring-color: var(--volcano-muted); }
+      .bg-muted-foreground { background-color: var(--volcano-muted-foreground); }
+      .text-muted-foreground { color: var(--volcano-muted-foreground); }
+      .border-muted-foreground { border-color: var(--volcano-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--volcano-muted-foreground); }
+      .bg-destructive { background-color: var(--volcano-destructive); }
+      .text-destructive { color: var(--volcano-destructive); }
+      .border-destructive { border-color: var(--volcano-destructive); }
+      .ring-destructive { --tw-ring-color: var(--volcano-destructive); }
+      .bg-destructive-foreground { background-color: var(--volcano-destructive-foreground); }
+      .text-destructive-foreground { color: var(--volcano-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--volcano-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--volcano-destructive-foreground); }
+      .bg-border { background-color: var(--volcano-border); }
+      .text-border { color: var(--volcano-border); }
+      .border-border { border-color: var(--volcano-border); }
+      .ring-border { --tw-ring-color: var(--volcano-border); }
+      .bg-input { background-color: var(--volcano-input); }
+      .text-input { color: var(--volcano-input); }
+      .border-input { border-color: var(--volcano-input); }
+      .ring-input { --tw-ring-color: var(--volcano-input); }
+      .bg-ring { background-color: var(--volcano-ring); }
+      .text-ring { color: var(--volcano-ring); }
+      .border-ring { border-color: var(--volcano-ring); }
+      .ring-ring { --tw-ring-color: var(--volcano-ring); }
+      .bg-sidebar-foreground { background-color: var(--volcano-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--volcano-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--volcano-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--volcano-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--volcano-sidebar-primary); }
+      .text-sidebar-primary { color: var(--volcano-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--volcano-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--volcano-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--volcano-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--volcano-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--volcano-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--volcano-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--volcano-sidebar-accent); }
+      .text-sidebar-accent { color: var(--volcano-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--volcano-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--volcano-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--volcano-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--volcano-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--volcano-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--volcano-sidebar-accent-foreground); }
+      .bg-secondary { background-color: var(--color-secondary); }
+      .text-secondary { color: var(--color-secondary); }
+      .border-secondary { border-color: var(--color-secondary); }
+      .ring-secondary { --tw-ring-color: var(--color-secondary); }
+      .bg-secondary-foreground { background-color: var(--color-secondary-foreground); }
+      .text-secondary-foreground { color: var(--color-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--color-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--color-secondary-foreground); }
+      .bg-accent { background-color: var(--color-accent); }
+      .text-accent { color: var(--color-accent); }
+      .border-accent { border-color: var(--color-accent); }
+      .ring-accent { --tw-ring-color: var(--color-accent); }
+      .bg-accent-foreground { background-color: var(--color-accent-foreground); }
+      .text-accent-foreground { color: var(--color-accent-foreground); }
+      .border-accent-foreground { border-color: var(--color-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--color-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+<!-- Shared project shell for K8S multi-cluster admin console -->
+<!-- Mutable slots: pageTitle, activeNavKey, mainContent, pageActions -->
+
+<div class="flex h-screen w-full overflow-hidden bg-background text-foreground" id="app-shell">
+  <!-- Sidebar -->
+  <aside class="flex-shrink-0 flex flex-col w-[240px] bg-[var(--volcano-sidebar-background)] text-[var(--volcano-sidebar-foreground)] border-r border-[var(--volcano-sidebar-border)]">
+    <!-- Logo -->
+    <div class="flex items-center h-14 px-4 border-b border-[var(--volcano-sidebar-border)]">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
+          <i data-lucide="hexagon" class="w-4 h-4"></i>
+        </div>
+        <span class="font-semibold text-[15px] text-[var(--volcano-sidebar-accent-foreground)]">K8S Console</span>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1" id="sidebar-nav">
+      <a href="pages/cluster-overview.html" data-nav-key="overview" data-dom-id="nav-overview" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>概览</span>
+      </a>
+      <a href="pages/cluster-import.html" data-nav-key="clusters" data-dom-id="nav-clusters" data-active="true" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium bg-[var(--volcano-sidebar-primary)] text-[var(--volcano-sidebar-primary-foreground)] transition-colors">
+        <i data-lucide="server" class="w-4 h-4"></i>
+        <span>集群管理</span>
+      </a>
+      <a href="pages/resource-list.html" data-nav-key="resources" data-dom-id="nav-resources" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="boxes" class="w-4 h-4"></i>
+        <span>资源管理</span>
+      </a>
+      <a href="pages/backup-list.html" data-nav-key="backups" data-dom-id="nav-backups" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="archive" class="w-4 h-4"></i>
+        <span>备份管理</span>
+      </a>
+      <a href="pages/plugin-center.html" data-nav-key="plugins" data-dom-id="nav-plugins" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="plug" class="w-4 h-4"></i>
+        <span>插件中心</span>
+      </a>
+      <a href="#" data-nav-key="settings" data-dom-id="nav-settings" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[var(--volcano-sidebar-foreground)] hover:bg-[var(--volcano-sidebar-accent)] hover:text-[var(--volcano-sidebar-accent-foreground)] transition-colors">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+        <span>系统设置</span>
+      </a>
+    </nav>
+
+    <!-- Sidebar footer -->
+    <div class="px-3 py-3 border-t border-[var(--volcano-sidebar-border)]">
+      <div class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-[var(--volcano-sidebar-foreground)] opacity-80">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+        <span>v1.0.0 · Plugin Ready</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="flex-1 flex flex-col min-w-0 bg-background">
+    <!-- Top header -->
+    <header class="flex-shrink-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 z-10">
+      <div class="flex items-center gap-3">
+        <!-- Cluster selector -->
+        <div class="relative">
+          <button data-dom-id="cluster-selector" class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors text-[13px]">
+            <i data-lucide="database" class="w-3.5 h-3.5 text-muted-foreground"></i>
+            <span class="font-medium">prod-cluster-01</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-muted-foreground"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Global search -->
+        <button data-dom-id="global-search" class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors text-[13px] text-muted-foreground">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i>
+          <span>搜索资源...</span>
+          <kbd class="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-muted text-[11px] border border-border">⌘K</kbd>
+        </button>
+        <!-- Notifications -->
+        <button data-dom-id="notifications" class="relative p-2 rounded-md border border-border bg-background hover:bg-muted transition-colors">
+          <i data-lucide="bell" class="w-4 h-4 text-muted-foreground"></i>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive"></span>
+        </button>
+        <!-- User avatar -->
+        <button data-dom-id="user-avatar" class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
+          <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[12px] font-semibold">SA</div>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-muted-foreground"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page title bar -->
+    <div class="flex-shrink-0 bg-card border-b border-border px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-semibold text-foreground">导入集群</h1>
+          <p class="mt-0.5 text-[13px] text-muted-foreground">K8S 多集群管理平台 · clusters</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main scroll content -->
+    <main class="flex-1 overflow-y-auto p-6 bg-background">
+      <!-- Import form -->
+      <div class="max-w-3xl mx-auto">
+        <div class="bg-card rounded-[12px] shadow-[var(--volcano-shadow-1)] p-6 space-y-6" data-dom-id="import-form">
+          <!-- Cluster name -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-foreground" for="cluster-name">集群名称 <span class="text-destructive">*</span></label>
+            <input id="cluster-name" type="text" placeholder="例如：prod-cluster-01" class="w-full px-3 py-2 rounded-md border border-border bg-background text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+          </div>
+
+          <!-- Kubeconfig/API cert -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-foreground" for="cluster-cert">Kubeconfig / API 证书</label>
+            <div class="relative">
+              <textarea id="cluster-cert" rows="10" placeholder="将 kubeconfig 内容粘贴到此处，或将文件拖拽到该区域" class="w-full px-3 py-2 rounded-md border border-border bg-background font-mono text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></textarea>
+              <div class="absolute inset-0 pointer-events-none border-2 border-dashed border-primary/30 rounded-md flex flex-col items-center justify-center text-primary opacity-0 hover:opacity-100 transition-opacity bg-background/90">
+                <i data-lucide="upload-cloud" class="w-8 h-8 mb-2"></i>
+                <span class="text-[13px] font-medium">拖拽文件到此处上传</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- API server URL -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-foreground" for="api-server">API Server 地址</label>
+            <input id="api-server" type="text" placeholder="https://kubernetes.default.svc:443" class="w-full px-3 py-2 rounded-md border border-border bg-background text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+          </div>
+
+          <!-- Description -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-foreground" for="description">描述 <span class="text-muted-foreground font-normal">（可选）</span></label>
+            <textarea id="description" rows="3" placeholder="请输入集群描述" class="w-full px-3 py-2 rounded-md border border-border bg-background text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></textarea>
+          </div>
+
+          <!-- Action bar -->
+          <div class="flex items-center justify-between pt-4 border-t border-border">
+            <button type="button" class="px-4 py-2 rounded-md border border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted transition-colors">测试连接</button>
+            <div class="flex items-center gap-3">
+              <a href="cluster-overview.html" data-dom-id="btn-cancel" class="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors">取消</a>
+              <button type="button" data-dom-id="btn-save-success" class="px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors">保存并导入</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection test result -->
+        <div class="mt-4 flex items-start gap-3 rounded-md px-4 py-3 text-[13px]" style="background-color: var(--volcano-state-success-bg); color: var(--volcano-state-success);" data-dom-id="connection-test">
+          <i data-lucide="check-circle-2" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+          <div>
+            <p class="font-medium">连接成功 · 版本 v1.28.4</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

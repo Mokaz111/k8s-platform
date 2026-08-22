@@ -1,0 +1,115 @@
+# K8S 多集群管理平台 - 配置文件示例
+# 复制为 config.yaml 或通过环境变量覆盖
+
+server:
+  name: k8s-platform-api
+  mode: debug   # debug / release / test
+  host: 0.0.0.0
+  port: 8080
+  # Task Worker 使用不同端口启动，部署为独立进程
+  worker_port: 8081
+
+# 数据库配置
+database:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  username: postgres
+  password: postgres
+  dbname: k8s_platform
+  sslmode: disable
+  timezone: Asia/Shanghai
+  max_idle_conns: 10
+  max_open_conns: 50
+  conn_max_lifetime: 3600  # seconds
+  auto_migrate: true       # 启动时自动 GORM AutoMigrate（开发环境 true，生产建议关闭用迁移工具）
+
+# Redis 配置（缓存 + 限流 + 任务队列）
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 50
+  min_idle_conns: 5
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+# JWT 认证配置
+auth:
+  jwt_secret: "please-change-me-to-a-random-32-byte-string!!"
+  jwt_issuer: "k8s-platform"
+  access_token_ttl: 7200    # 2 小时，单位秒
+  refresh_token_ttl: 604800 # 7 天
+  bcrypt_cost: 10
+
+# KMS 加密密钥（kubeconfig 加密用）
+# 生产环境请通过 K8S Secret 挂载文件：/etc/k8s-platform/encryption.key
+kms:
+  provider: local_aes   # local_aes / vault / 插件ID
+  # provider=local_aes 时必填：32 字节（256bit）hex 字符串（64 字符）
+  # 生成命令：openssl rand -hex 32
+  local_aes_key_hex: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  # 密钥版本，用于轮换标识
+  key_version: v1
+  # 上一版本密钥（轮换过渡期使用，解密尝试顺序：新版 -> 旧版）
+  previous_aes_key_hex: ""
+
+# Informer 缓存保护参数
+informer:
+  lazy_start: true
+  idle_ttl: 30m          # 空闲自动停止 Informer
+  startup_concurrency: 2 # 同集群同时处于 List 阶段的 GVK 数量
+  list_qps: 5            # List 阶段 QPS
+  list_burst: 20         # List 阶段突发
+  list_page_size: 500    # 分页大小
+  list_page_interval: 1s # 分页间 sleep
+  list_timeout: 60s      # 单 List 超时
+  watch_backoff_min: 1s
+  watch_backoff_max: 60s
+  watch_max_retries: 10
+
+# 熔断器（API Server 调用保护）
+breaker:
+  open_threshold: 5      # 连续失败次数开熔断
+  open_duration: 5m      # 熔断时长
+  half_open_max_requests: 1
+
+# 备份配置
+backup:
+  # 默认存储后端 local / s3 / nfs
+  default_storage: local
+  local:
+    base_dir: ./data/backups
+  # s3:
+  #   endpoint: minio.local:9000
+  #   access_key: minioadmin
+  #   secret_key: minioadmin
+  #   bucket: k8s-platform-backups
+  #   region: us-east-1
+  #   use_ssl: false
+  # nfs:
+  #   base_path: /mnt/nfs/k8s-backups
+
+# 日志配置
+log:
+  level: debug            # debug/info/warn/error/dpanic/panic/fatal
+  format: json            # json / console
+  output_paths:
+    - stdout
+  # 错误日志单独文件（可选）
+  error_file: "./logs/error.log"
+  max_size: 100           # MB
+  max_age: 30             # days
+  max_backups: 10
+  compress: true
+
+# CORS 白名单
+security:
+  cors_allow_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+  cors_allow_credentials: true
+  # 审计日志 request_body 最大保留字节数，超限截断
+  audit_body_max_bytes: 4096

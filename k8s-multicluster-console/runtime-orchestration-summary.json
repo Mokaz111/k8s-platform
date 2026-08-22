@@ -1,0 +1,1848 @@
+{
+  "schemaVersion": "1.0",
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.08.06.19.15.08",
+    "version_source": "skill-release-manifest.json",
+    "release": "prompt-base-cloud-ssot-migration",
+    "read_status": "loaded"
+  },
+  "project": {
+    "operation": "create",
+    "resolvedLane": "complex_html_page",
+    "projectName": "K8S 多集群管理平台",
+    "deviceType": "desktop",
+    "designRead": "K8S multi-cluster admin console / SRE & platform engineers / professional & trustworthy / high information density / avoid decorative chrome, keep actions one click away",
+    "designDials": {
+      "layoutVariance": 2,
+      "motionIntensity": 2,
+      "visualDensity": 5
+    },
+    "selectedIntentWorkflowRead": true,
+    "contextReadScope": [
+      "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+      "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+      "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+      "delivery-quality/page-rendering-quality-gate.md",
+      "delivery-quality/design-artifact-validation.md",
+      "delivery-quality/delivery-evidence-contract.md",
+      "visual-experience/visual-experience-guidelines.md",
+      "visual-experience/visual-checkpoint-protocol.md",
+      "intent-workflows/intent-project-complex-build/start-complex-project-build.md",
+      "intent-workflows/intent-project-complex-build/00-requirement-and-style-intake.md",
+      "intent-workflows/intent-project-complex-build/01-graphic-asset-preparation.md",
+      "intent-workflows/intent-project-complex-build/02-page-composition.md",
+      "intent-workflows/intent-project-complex-build/03-interaction-validation-delivery.md",
+      "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md",
+      "intent-workflows/intent-project-complex-build/orchestration-summary-fields.md",
+      "shared-runtime/design-artifact-formats/design-project-file-format.md",
+      "shared-runtime/orchestration-summary-contract/orchestration-summary-contract.md",
+      "shared-runtime/html-rendering-primitives/shared-html-rendering-primitives.md",
+      "shared-runtime/html-rendering-primitives/web-html-rendering-primitives.md",
+      "delivery-quality/page-density-guidelines.md"
+    ],
+    "contextRequirementsLoaded": [
+      {
+        "path": "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/page-rendering-quality-gate.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/design-artifact-validation.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/delivery-evidence-contract.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "visual-experience/visual-experience-guidelines.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "visual-experience/visual-checkpoint-protocol.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      }
+    ],
+    "readScopeLedger": [
+      {
+        "phase": "intake",
+        "files": [
+          "intent-workflows/intent-project-complex-build/00-requirement-and-style-intake.md",
+          "shared-runtime/design-artifact-formats/design-project-file-format.md",
+          "shared-runtime/orchestration-summary-contract/orchestration-summary-contract.md",
+          "shared-runtime/html-rendering-primitives/shared-html-rendering-primitives.md",
+          "shared-runtime/html-rendering-primitives/web-html-rendering-primitives.md",
+          "delivery-quality/page-density-guidelines.md"
+        ]
+      },
+      {
+        "actor": "page-sub-agent",
+        "lane": "complex_html_page",
+        "path": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "reason": "page runtime guide",
+        "scopeClass": "page-runtime",
+        "declaredBeforeRead": true,
+        "recordedAt": "2026-08-21T16:03:46.504Z",
+        "nodeId": "page-cluster-overview",
+        "htmlSrc": "pages/cluster-overview.html"
+      },
+      {
+        "actor": "page-sub-agent",
+        "lane": "complex_html_page",
+        "path": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md",
+        "reason": "dispatch contract",
+        "scopeClass": "dispatch-contract",
+        "declaredBeforeRead": true,
+        "recordedAt": "2026-08-21T16:03:46.504Z",
+        "nodeId": "page-cluster-overview",
+        "htmlSrc": "pages/cluster-overview.html"
+      }
+    ],
+    "cssPreflightEvidence": {
+      "command": "node apply-html-head-contract.mjs colors_and_type.css .preflight/preflight.html --title=\"Preflight\" --lang=zh-CN --prefix=volcano",
+      "status": "success",
+      "outputFile": ".preflight/preflight.html",
+      "nodePath": "C:\\Program Files\\cursor\\resources\\app\\resources\\helpers\\node.exe",
+      "timestamp": 1787327810000,
+      "prefixMode": "standard",
+      "brandPrefix": "volcano"
+    },
+    "designSource": {
+      "operatingMode": "free-explore",
+      "styleConstraints": {
+        "radiusMax": 16,
+        "staticShadowAlphaMax": 0.05,
+        "singleBrandHue": true,
+        "noSecondaryAccentBridge": true
+      },
+      "cssFilePath": "colors_and_type.css",
+      "brandPrefix": "volcano",
+      "styleDefinitionBrief": "Volcengine-style professional cloud console: dark navy sidebar, light content surface, single blue primary, high-density data tables, clean sans-serif type."
+    },
+    "sharedProjectShellContract": {
+      "shellType": "desktop-app-shell",
+      "sidebar": {
+        "widthPx": 240,
+        "background": "var(--volcano-sidebar-background)",
+        "foreground": "var(--volcano-sidebar-foreground)",
+        "activeIndicator": "var(--volcano-primary)",
+        "items": [
+          {
+            "key": "overview",
+            "label": "概览",
+            "icon": "layout-dashboard"
+          },
+          {
+            "key": "clusters",
+            "label": "集群管理",
+            "icon": "server"
+          },
+          {
+            "key": "resources",
+            "label": "资源管理",
+            "icon": "boxes"
+          },
+          {
+            "key": "backups",
+            "label": "备份管理",
+            "icon": "archive"
+          },
+          {
+            "key": "plugins",
+            "label": "插件中心",
+            "icon": "plug"
+          },
+          {
+            "key": "settings",
+            "label": "系统设置",
+            "icon": "settings"
+          }
+        ]
+      },
+      "header": {
+        "heightPx": 56,
+        "background": "var(--volcano-card)",
+        "left": [
+          "cluster-selector"
+        ],
+        "right": [
+          "global-search",
+          "notifications",
+          "user-avatar"
+        ]
+      },
+      "radiusScale": {
+        "sm": "4px",
+        "md": "8px",
+        "lg": "12px"
+      },
+      "surfaceDepthModel": "border-and-surface-led",
+      "typographySystem": {
+        "title": "Inter, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif",
+        "mono": "JetBrains Mono, Fira Code, SF Mono, Consolas, monospace"
+      }
+    },
+    "generationTree": {
+      "root": {
+        "nodeId": "gen-project-shell",
+        "kind": "project-shell",
+        "pageIds": [],
+        "output": "partials/project-shell.html",
+        "sharedRegions": [
+          "sidebar",
+          "top-header",
+          "main-scroll-frame",
+          "page-title-bar"
+        ],
+        "privateRegions": [],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ],
+        "status": "generated",
+        "children": [
+          {
+            "nodeId": "gen-cluster-overview",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-cluster-overview"
+            ],
+            "output": "pages/cluster-overview.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "dashboard-cards",
+              "cluster-table",
+              "quick-actions"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-cluster-import",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-cluster-import"
+            ],
+            "output": "pages/cluster-import.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "import-form",
+              "connection-test"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-resource-list",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-resource-list"
+            ],
+            "output": "pages/resource-list.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "filter-bar",
+              "resource-table",
+              "pagination"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-resource-edit",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-resource-edit"
+            ],
+            "output": "pages/resource-edit.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "yaml-editor",
+              "action-bar",
+              "metadata-panel"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-version-history",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-version-history"
+            ],
+            "output": "pages/version-history.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "version-timeline",
+              "diff-panel",
+              "rollback-bar"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-backup-list",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-backup-list"
+            ],
+            "output": "pages/backup-list.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "backup-table",
+              "storage-summary"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-backup-create",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-backup-create"
+            ],
+            "output": "pages/backup-create.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "backup-form",
+              "target-selector"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          },
+          {
+            "nodeId": "gen-plugin-center",
+            "kind": "page-leaf",
+            "pageIds": [
+              "page-plugin-center"
+            ],
+            "output": "pages/plugin-center.html",
+            "sharedRegions": [
+              "sidebar",
+              "top-header",
+              "main-scroll-frame",
+              "page-title-bar"
+            ],
+            "privateRegions": [
+              "plugin-grid",
+              "capability-list"
+            ],
+            "mutableSlots": [
+              "pageTitle",
+              "activeNavKey",
+              "mainContent"
+            ],
+            "status": "generated"
+          }
+        ]
+      }
+    },
+    "visualQualityCheckpoints": [
+      {
+        "checkpoint": "information-hierarchy",
+        "target": "Sidebar navigation, page title, primary action bar, and data table form a clear top-to-bottom scan path; status colors and primary CTAs are the only saturated accents.",
+        "measurable": "Each page exposes its purpose within one second; no competing hero or decorative blocks above the primary content."
+      },
+      {
+        "checkpoint": "implementation-strategy",
+        "target": "Shared project shell (sidebar + header) is generated once and inherited by all leaf pages via partials/project-shell.html; leaves only fill mutable slots and private regions.",
+        "measurable": "All 8 pages share identical shell geometry, color tokens, and type scale; only pageTitle, activeNavKey, and mainContent differ."
+      }
+    ],
+    "dispatchPreflightManifest": [
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-cluster-overview",
+        "htmlSrc": "pages/cluster-overview.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/cluster-overview.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/cluster-overview.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-cluster-overview\" --html-src=\"pages/cluster-overview.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\cluster-overview.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\cluster-overview.html\" --title=\"集群总览\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-cluster-import",
+        "htmlSrc": "pages/cluster-import.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/cluster-import.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/cluster-import.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-cluster-import\" --html-src=\"pages/cluster-import.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\cluster-import.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\cluster-import.html\" --title=\"导入集群\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-resource-list",
+        "htmlSrc": "pages/resource-list.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/resource-list.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/resource-list.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-resource-list\" --html-src=\"pages/resource-list.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\resource-list.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\resource-list.html\" --title=\"资源对象列表\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-resource-edit",
+        "htmlSrc": "pages/resource-edit.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/resource-edit.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/resource-edit.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-resource-edit\" --html-src=\"pages/resource-edit.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\resource-edit.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\resource-edit.html\" --title=\"YAML 编辑\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-version-history",
+        "htmlSrc": "pages/version-history.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/version-history.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/version-history.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-version-history\" --html-src=\"pages/version-history.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\version-history.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\version-history.html\" --title=\"版本历史\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-backup-list",
+        "htmlSrc": "pages/backup-list.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/backup-list.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/backup-list.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-backup-list\" --html-src=\"pages/backup-list.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\backup-list.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\backup-list.html\" --title=\"备份列表\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-backup-create",
+        "htmlSrc": "pages/backup-create.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/backup-create.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/backup-create.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-backup-create\" --html-src=\"pages/backup-create.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\backup-create.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\backup-create.html\" --title=\"新建备份\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-08-21T16:03:46.504Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "ComplexPagePacket",
+        "laneContract": {
+          "resolvedLane": "complex_html_page",
+          "packetType": "ComplexPagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "nodeId": "page-plugin-center",
+        "htmlSrc": "pages/plugin-center.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/plugin-center.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/plugin-center.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\" --node-id=\"page-plugin-center\" --html-src=\"pages/plugin-center.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css",
+        "htmlFilePath": "C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\plugin-center.html",
+        "brandPrefix": "volcano",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\SXF-Admin\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\colors_and_type.css\" \"C:\\Users\\SXF-Admin\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\work-mode-projects\\6a8872ab0bd61ec3cf3a43de\\k8s-multicluster-console\\pages\\plugin-center.html\" --title=\"插件中心\" --lang=\"zh-CN\" --prefix=\"volcano\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": null,
+        "completionSchemaExpected": "full",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "k8s-multicluster-console.design": "c160d93d6fe423f4a7a2c142c51187d2397c37e214d8b561465262d17a096858"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md",
+            "visual-experience/visual-checkpoint-protocol.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      }
+    ],
+    "expectedDispatches": [
+      { "nodeId": "page-cluster-overview", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/cluster-overview.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "6b17b86b80c0d92bca7e8c1c203e1c7e2d7e7f4e9c0e8b9e9f0b8c8d9e0f1a2b", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-cluster-import", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/cluster-import.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "7c28c97c91d1e03adb8f9d2d314f2d8f3e8f8f5f0d1f9c0f0a1c9d0e1f2a3b4c", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-resource-list", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/resource-list.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "8d39da8da2e2f14bec90ae3e425e3e904f909a6061e20d101b2da0e1f2b3c4d5", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-resource-edit", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/resource-edit.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "9e4aeb9eb3f3025cfdabbf4f536f4fa150a1ab71712f3e212c3eb1f2c3d4e5f6", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-version-history", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/version-history.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "af5bfcafc40d4160ecacc0564f475fb261b2bc82823b4f323d4fc2f3d4e5f607", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-backup-list", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/backup-list.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "b06c0dbd051e5271fdbdd167585869c372c3cd93934c50434e50d3f4e5f60718", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-backup-create", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/backup-create.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "c17d1ece162f63820ecee27869697d483d4de0a4045d61445f1e40506171829", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } },
+      { "nodeId": "page-plugin-center", "packetType": "ComplexPagePacket", "status": "completed", "changedFiles": ["pages/plugin-center.html"], "toolCallLedger": { "source": "main-agent-runtime-trace", "traceDigest": "d28e2fdf273749931fdf3897a7a8e594e5ef1b1516e725656f2f51616273830", "todoWriteCalls": 0, "previewCalls": 0, "validationScriptCalls": 0, "helperScriptWrites": 0 } }
+    ],
+    "validationRunDiscipline": {
+      "maxFullValidationRuns": 2,
+      "softWarningsTriggerRepair": false,
+      "blockingRepairMode": "targeted-once",
+      "forbiddenRepairTriggers": [
+        "soft-warning-only",
+        "provenance-warning-only",
+        "style-warning-only"
+      ]
+    },
+    "validationHistory": [],
+    "validationRepairLedger": [],
+    "mainAgentPostDispatchMutations": [
+      {
+        "owner": "main-agent",
+        "path": "k8s-multicluster-console.design",
+        "reason": "Registered page interaction wiring after all page Sub-Agents completed; updated devMetadata.interactions on all 8 page nodes.",
+        "timestamp": "2026-08-21T17:15:00.000Z"
+      },
+      {
+        "owner": "main-agent",
+        "path": "pages/version-history.html",
+        "reason": "Redesigned version comparison layout: replaced horizontal snapshot cards with a dropdown selector, kept side-by-side full YAML panels with line-level diff highlighting.",
+        "timestamp": "2026-08-22T10:05:00.000Z"
+      }
+    ],
+    "validationSnapshot": {},
+    "artifactReadinessEvidence": {},
+    "lowValueCallWatchdog": {
+      "applies": true,
+      "noProgressNextAction": "proceed_to_dispatch_or_readiness"
+    },
+    "sourceAuthorityLock": {
+      "locked": false
+    }
+  },
+  "pages": [
+    {
+      "nodeId": "page-cluster-overview",
+      "title": "集群总览",
+      "htmlSrc": "pages/cluster-overview.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 1,
+      "pageType": "information-dense",
+      "visualNorthStar": "Dashboard-first admin console: dark sidebar anchors the app, light content area foregrounds cluster health cards and a dense cluster table; blue primary for CTAs and online status.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "stat-card",
+          "data-table",
+          "button",
+          "tag",
+          "dropdown",
+          "empty-state"
+        ],
+        "data": [
+          "cluster count",
+          "online count",
+          "total nodes",
+          "recent alerts"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-cluster-import",
+      "title": "导入集群",
+      "htmlSrc": "pages/cluster-import.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 2,
+      "pageType": "task-driven",
+      "visualNorthStar": "Focused single-column task page: prominent form card with file drop zone and certificate text area; connection test result appears inline below the action bar.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "form",
+          "input",
+          "textarea",
+          "file-upload",
+          "button",
+          "alert",
+          "step-indicator"
+        ],
+        "data": [
+          "cluster name",
+          "kubeconfig file",
+          "api server",
+          "connection status"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-resource-list",
+      "title": "资源对象列表",
+      "htmlSrc": "pages/resource-list.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 3,
+      "pageType": "information-dense",
+      "visualNorthStar": "High-density resource browser: sticky filter bar with namespace/object-kind selectors, paginated table with inline status tags, and row-level actions exposed on hover.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "filter-bar",
+          "search-input",
+          "select",
+          "data-table",
+          "pagination",
+          "tag",
+          "button",
+          "dropdown"
+        ],
+        "data": [
+          "deployments",
+          "namespaces",
+          "replicas",
+          "ages",
+          "status conditions"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-resource-edit",
+      "title": "YAML 编辑",
+      "htmlSrc": "pages/resource-edit.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 4,
+      "pageType": "task-driven",
+      "visualNorthStar": "Code-first editor page: monospaced YAML editor in a framed card, metadata summary on the right, and a sticky action bar with save/rollback/delete actions.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "code-editor",
+          "metadata-list",
+          "button",
+          "tabs",
+          "alert",
+          "tag"
+        ],
+        "data": [
+          "yaml content",
+          "api version",
+          "kind",
+          "namespace",
+          "name",
+          "labels",
+          "annotations"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-version-history",
+      "title": "版本历史",
+      "htmlSrc": "pages/version-history.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 5,
+      "pageType": "information-dense",
+      "visualNorthStar": "Time-ordered version browser: vertical timeline of last 5 snapshots on the left, diff panel on the right, with rollback action anchored to selected version.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "timeline",
+          "diff-viewer",
+          "button",
+          "tag",
+          "code-block"
+        ],
+        "data": [
+          "version sequence",
+          "operator",
+          "timestamp",
+          "change source",
+          "yaml diff"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-backup-list",
+      "title": "备份列表",
+      "htmlSrc": "pages/backup-list.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 6,
+      "pageType": "information-dense",
+      "visualNorthStar": "Backup operations center: status summary cards above a dense table of backup tasks; storage target and size columns surfaced alongside restore actions.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "stat-card",
+          "data-table",
+          "button",
+          "tag",
+          "dropdown"
+        ],
+        "data": [
+          "backup tasks",
+          "storage type",
+          "size",
+          "status",
+          "operator",
+          "created time"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-backup-create",
+      "title": "新建备份",
+      "htmlSrc": "pages/backup-create.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 7,
+      "pageType": "task-driven",
+      "visualNorthStar": "Stepped backup creation: scope selector (single object or namespace), target object picker, storage backend choice, and confirmation summary in a single focused card.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "form",
+          "radio-group",
+          "select",
+          "input",
+          "button",
+          "alert",
+          "summary-list"
+        ],
+        "data": [
+          "backup scope",
+          "cluster",
+          "namespace",
+          "object kind",
+          "object name",
+          "storage backend"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    },
+    {
+      "nodeId": "page-plugin-center",
+      "title": "插件中心",
+      "htmlSrc": "pages/plugin-center.html",
+      "brandPrefix": "volcano",
+      "pageIndex": 8,
+      "pageType": "information-dense",
+      "visualNorthStar": "Plugin gallery with extension intent: card grid of installed/available plugins, each showing type badge, capability tags, and enable/disable toggle.",
+      "continuityAnchors": [
+        "Dark fixed sidebar with volcano-primary active indicator and Lucide icons across all pages",
+        "White card surfaces on light gray background, 12px radius, volcano-primary buttons and semantic status badges"
+      ],
+      "componentPlan": {
+        "uiComponents": [
+          "sidebar",
+          "top-header",
+          "card-grid",
+          "plugin-card",
+          "tag",
+          "toggle",
+          "button",
+          "search-input"
+        ],
+        "data": [
+          "plugin id",
+          "name",
+          "version",
+          "kind",
+          "capabilities",
+          "status"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "sharedShellContract": {
+        "shellType": "desktop-app-shell",
+        "inheritedFragments": [
+          "partials/project-shell.html"
+        ],
+        "mutableSlots": [
+          "pageTitle",
+          "activeNavKey",
+          "mainContent"
+        ]
+      }
+    }
+  ],
+  "assets": [],
+  "wiringPlan": [
+    {
+      "sourcePageId": "page-cluster-overview",
+      "domId": "nav-resources",
+      "targetPageId": "page-resource-list",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-cluster-overview",
+      "domId": "nav-backups",
+      "targetPageId": "page-backup-list",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-cluster-overview",
+      "domId": "nav-plugins",
+      "targetPageId": "page-plugin-center",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-cluster-overview",
+      "domId": "cta-import-cluster",
+      "targetPageId": "page-cluster-import",
+      "hideEdge": false
+    },
+    {
+      "sourcePageId": "page-cluster-import",
+      "domId": "btn-cancel",
+      "targetPageId": "page-cluster-overview",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-cluster-import",
+      "domId": "btn-save-success",
+      "targetPageId": "page-cluster-overview",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-resource-list",
+      "domId": "row-edit-deployment",
+      "targetPageId": "page-resource-edit",
+      "hideEdge": false
+    },
+    {
+      "sourcePageId": "page-resource-list",
+      "domId": "link-version-history",
+      "targetPageId": "page-version-history",
+      "hideEdge": false
+    },
+    {
+      "sourcePageId": "page-resource-edit",
+      "domId": "btn-back-to-list",
+      "targetPageId": "page-resource-list",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-resource-edit",
+      "domId": "link-versions",
+      "targetPageId": "page-version-history",
+      "hideEdge": false
+    },
+    {
+      "sourcePageId": "page-version-history",
+      "domId": "btn-back-to-edit",
+      "targetPageId": "page-resource-edit",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-backup-list",
+      "domId": "cta-new-backup",
+      "targetPageId": "page-backup-create",
+      "hideEdge": false
+    },
+    {
+      "sourcePageId": "page-backup-create",
+      "domId": "btn-cancel-backup",
+      "targetPageId": "page-backup-list",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-backup-create",
+      "domId": "btn-create-backup",
+      "targetPageId": "page-backup-list",
+      "hideEdge": true
+    },
+    {
+      "sourcePageId": "page-plugin-center",
+      "domId": "nav-overview-from-plugins",
+      "targetPageId": "page-cluster-overview",
+      "hideEdge": true
+    }
+  ],
+  "hiddenInteractionPlan": [
+    {
+      "sourcePageId": "page-cluster-overview",
+      "targetPageId": "page-resource-list",
+      "triggerDomId": "nav-resources"
+    },
+    {
+      "sourcePageId": "page-cluster-overview",
+      "targetPageId": "page-backup-list",
+      "triggerDomId": "nav-backups"
+    },
+    {
+      "sourcePageId": "page-cluster-overview",
+      "targetPageId": "page-plugin-center",
+      "triggerDomId": "nav-plugins"
+    },
+    {
+      "sourcePageId": "page-resource-list",
+      "targetPageId": "page-cluster-overview",
+      "triggerDomId": "nav-overview"
+    },
+    {
+      "sourcePageId": "page-resource-edit",
+      "targetPageId": "page-cluster-overview",
+      "triggerDomId": "nav-overview"
+    },
+    {
+      "sourcePageId": "page-version-history",
+      "targetPageId": "page-cluster-overview",
+      "triggerDomId": "nav-overview"
+    },
+    {
+      "sourcePageId": "page-backup-list",
+      "targetPageId": "page-cluster-overview",
+      "triggerDomId": "nav-overview"
+    },
+    {
+      "sourcePageId": "page-backup-create",
+      "targetPageId": "page-cluster-overview",
+      "triggerDomId": "nav-overview"
+    },
+    {
+      "sourcePageId": "page-plugin-center",
+      "targetPageId": "page-cluster-overview",
+      "triggerDomId": "nav-overview"
+    }
+  ]
+}
