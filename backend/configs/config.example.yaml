@@ -89,8 +89,13 @@ backup:
   #   bucket: k8s-platform-backups
   #   region: us-east-1
   #   use_ssl: false
+  # NFS 存储（生产推荐：运维先 mount，再填 mount_point 即可）
   # nfs:
-  #   base_path: /mnt/nfs/k8s-backups
+  #   server: 192.168.1.100                 # NFS 服务端地址。填了才会启用"挂载有效性强校验"
+  #   remote_path: /exports/k8s-backups     # NFS 服务端共享路径（仅用于配置记录/排错展示）
+  #   mount_point: /mnt/nfs/k8s-backups     # 本地已 mount 的目录（推荐）
+  #   base_path: /mnt/nfs/k8s-backups       # 兼容旧字段，mount_point 空时生效
+  #   # 开发降级模式：只填 base_path 不填 server → 不做 mount 强校验，直接当普通本地目录用
 
 # 日志配置
 log:

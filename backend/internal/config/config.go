@@ -121,7 +121,20 @@ type S3BackupConfig struct {
 	UseSSL    bool   `mapstructure:"use_ssl"`
 }
 
+// NFSBackupConfig NFS 备份存储配置
+// 约定两种用法（任选其一）：
+//
+//   - 模式 A（生产推荐）：运维通过 fstab / CSI 已将 server:/remote_path 挂载到 mount_point
+//     base_path 建议等于 mount_point 或留空；代码会校验 mount_point 是否真位于 NFS 设备上
+//   - 模式 B（开发/降级）：server 留空，只填 base_path；此时当作普通本地路径使用，不做强挂载校验
 type NFSBackupConfig struct {
+	// Server NFS 服务端地址（IP/域名）。填了才会启用"挂载有效性强校验"
+	Server string `mapstructure:"server"`
+	// RemotePath NFS 导出的远端共享路径，如 /exports/k8s-backups（仅用于展示/排查）
+	RemotePath string `mapstructure:"remote_path"`
+	// MountPoint 机器本地的 NFS 挂载点，如 /mnt/nfs/k8s-backups
+	MountPoint string `mapstructure:"mount_point"`
+	// BasePath 兼容旧字段：等价于 MountPoint（当 MountPoint 空时生效）
 	BasePath string `mapstructure:"base_path"`
 }
 

@@ -29,6 +29,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import {
   Backup,
+  BackupMode,
   BackupStatus,
   StorageType,
   useDeleteBackupMutation,
@@ -37,6 +38,7 @@ import {
 } from '@/app/services/backup';
 import { download } from '@/app/services/request';
 import { BackupProgressPanel } from '@/components/ws';
+import { usePermission } from '@/hooks/usePermission';
 
 const storageColorMap: Record<StorageType, string> = {
   Local: 'geekblue',
@@ -58,6 +60,13 @@ const statusLabelMap: Record<BackupStatus, string> = {
   Pending: '等待中',
 };
 
+const modeLabelMap: Record<BackupMode | string, string> = {
+  single: '单对象',
+  namespace_batch: '命名空间批量',
+  object: '单对象',
+  namespace: '命名空间级',
+};
+
 interface ListFilters {
   keyword?: string;
   code?: string;
@@ -74,6 +83,11 @@ const BackupList: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [searchParams] = useSearchParams();
   const codeParam = searchParams.get('code') || undefined;
+  const { hasPerm } = usePermission();
+  const canCreate = hasPerm('backup:create');
+  const canRestore = hasPerm('backup:restore');
+  const canDownload = hasPerm('backup:download');
+  const canDelete = hasPerm('backup:delete');
 
   const [filters, setFilters] = useState<ListFilters>({
     keyword: '',
@@ -100,6 +114,7 @@ const BackupList: React.FC = () => {
   const handleReload = useCallback(() => refetch(), [refetch]);
 
   const handleOpenRestore = (record: Backup) => {
+    if (!canRestore) return;
     setRestoringRecord(record);
     restoreForm.setFieldsValue({
       targetCluster: record.code,
@@ -109,7 +124,7 @@ const BackupList: React.FC = () => {
   };
 
   const handleConfirmRestore = async () => {
-    if (!restoringRecord) return;
+    if (!restoringRecord || !canRestore) return;
     try {
       const values = await restoreForm.validateFields();
       const res = await restoreBackup({
@@ -125,10 +140,18 @@ const BackupList: React.FC = () => {
   };
 
   const handleDownload = async (record: Backup) => {
+    if (!canDownload) {
+      message.error('无备份下载权限');
+      return;
+    }
     try {
-      const filename = `backup-${record.code}-${record.kind}-${record.name || record.id}-${
-        record.id
-      }.yaml`;
+      const isBatch =
+        record.mode === 'namespace_batch' ||
+        (record.namespaces && record.namespaces.length > 1) ||
+        (record.kindFilter && record.kindFilter.length > 1);
+      const ext = isBatch ? 'tar.gz' : 'yaml';
+      const namePart = record.name || (isBatch ? 'batch' : record.kind) || record.id;
+      const filename = `backup-${record.code}-${namePart}-${record.id}.${ext}`;
       const url = record.downloadUrl || `/backups/${record.id}/download`;
       await download(url, filename);
       message.success('开始下载');
@@ -145,9 +168,9 @@ const BackupList: React.FC = () => {
         key: 'createdAt',
         width: 180,
         sorter: true,
-        render: (v: string | undefined, record) => (
+        render: (_dom, record) => (
           <Space direction="vertical" size={0}>
-            <span>{v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
+            <span>{record.createdAt ? dayjs(record.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
             {record.finishedAt && (
               <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
                 完成: {dayjs(record.finishedAt).format('MM-DD HH:mm:ss')}
@@ -161,16 +184,16 @@ const BackupList: React.FC = () => {
         dataIndex: 'operator',
         key: 'operator',
         width: 120,
-        render: (v) => v || '-',
+        render: (_dom, record) => record.operator || '-',
       },
       {
         title: '集群',
         dataIndex: 'code',
         key: 'code',
         width: 140,
-        render: (v, record) => (
+        render: (_dom, record) => (
           <Space>
-            <Tag color="blue">{v}</Tag>
+            <Tag color="blue">{record.code}</Tag>
             {record.clusterName && (
               <span style={{ color: 'rgba(0,0,0,0.65)' }}>{record.clusterName}</span>
             )}
@@ -178,42 +201,102 @@ const BackupList: React.FC = () => {
         ),
       },
       {
+        title: '备份模式',
+        dataIndex: 'mode',
+        key: 'mode',
+        width: 120,
+        render: (_dom, record) => {
+          const displayMode = record.mode || (record.namespaces && record.namespaces.length > 1 ? 'namespace_batch' : 'single');
+          return <Tag color={displayMode === 'namespace_batch' ? 'magenta' : 'cyan'}>
+            {modeLabelMap[displayMode] || displayMode || '单对象'}
+          </Tag>;
+        },
+      },
+      {
         title: '命名空间',
         dataIndex: 'namespace',
         key: 'namespace',
-        width: 130,
-        render: (v) => v || <Tag>（集群级）</Tag>,
+        width: 180,
+        render: (_dom, record) => {
+          const batchNs = record.namespaces;
+          if (batchNs && batchNs.length > 0) {
+            if (batchNs.length <= 3) {
+              return (
+                <Space size={[4, 4]} wrap>
+                  {batchNs.map((n) => (
+                    <Tag key={n} color="blue">{n}</Tag>
+                  ))}
+                </Space>
+              );
+            }
+            return (
+              <Space size={[4, 4]} wrap>
+                {batchNs.slice(0, 3).map((n) => (
+                  <Tag key={n} color="blue">{n}</Tag>
+                ))}
+                <Tag color="default">+{batchNs.length - 3}</Tag>
+              </Space>
+            );
+          }
+          return record.namespace || <Tag>（集群级）</Tag>;
+        },
       },
       {
         title: '对象类型 / 名称',
         key: 'object',
-        width: 240,
-        render: (_v, record) => (
-          <Space direction="vertical" size={0}>
-            <Tag color="purple">{record.kind}</Tag>
-            <a
-              style={{ wordBreak: 'break-all' }}
-              onClick={() => {
-                const ns = record.namespace ? encodeURIComponent(record.namespace) : '_';
-                navigate(
-                  `/resources/${record.code}/${encodeURIComponent(record.apiVersion)}/${encodeURIComponent(
-                    record.kind,
-                  )}/${ns}/${encodeURIComponent(record.name)}/edit`,
-                );
-              }}
-            >
-              {record.name}
-            </a>
-          </Space>
-        ),
+        width: 260,
+        render: (_v, record) => {
+          // 命名空间批量模式：展示 kind_filter 列表
+          const kf = record.kindFilter;
+          if (kf && kf.length > 0) {
+            if (kf.length <= 4) {
+              return (
+                <Space size={[4, 4]} wrap>
+                  {kf.map((k) => (
+                    <Tag key={k} color="purple">{k}</Tag>
+                  ))}
+                </Space>
+              );
+            }
+            return (
+              <Space size={[4, 4]} wrap>
+                {kf.slice(0, 4).map((k) => (
+                  <Tag key={k} color="purple">{k}</Tag>
+                ))}
+                <Tag color="default">+{kf.length - 4}</Tag>
+              </Space>
+            );
+          }
+          // 单对象/命名空间级模式：展示 kind + name 链接
+          return (
+            <Space direction="vertical" size={0}>
+              <Tag color="purple">{record.kind}</Tag>
+              {record.name && (
+                <a
+                  style={{ wordBreak: 'break-all' }}
+                  onClick={() => {
+                    const ns = record.namespace ? encodeURIComponent(record.namespace) : '_';
+                    navigate(
+                      `/resources/${record.code}/${encodeURIComponent(record.apiVersion)}/${encodeURIComponent(
+                        record.kind,
+                      )}/${ns}/${encodeURIComponent(record.name)}/edit`,
+                    );
+                  }}
+                >
+                  {record.name}
+                </a>
+              )}
+            </Space>
+          );
+        },
       },
       {
         title: '存储类型',
         dataIndex: 'storageType',
         key: 'storageType',
         width: 110,
-        render: (v: StorageType) => (
-          <Tag color={storageColorMap[v] || 'default'}>{v}</Tag>
+        render: (_dom, record) => (
+          <Tag color={storageColorMap[record.storageType] || 'default'}>{record.storageType}</Tag>
         ),
       },
       {
@@ -221,7 +304,8 @@ const BackupList: React.FC = () => {
         dataIndex: 'size',
         key: 'size',
         width: 110,
-        render: (v: number | undefined) => {
+        render: (_dom, record) => {
+          const v = record.size;
           if (!v) return '-';
           if (v < 1024) return `${v} B`;
           if (v < 1024 * 1024) return `${(v / 1024).toFixed(1)} KB`;
@@ -234,8 +318,8 @@ const BackupList: React.FC = () => {
         dataIndex: 'status',
         key: 'status',
         width: 120,
-        render: (v: BackupStatus) => (
-          <Tag color={statusColorMap[v]}>{statusLabelMap[v] || v}</Tag>
+        render: (_dom, record) => (
+          <Tag color={statusColorMap[record.status]}>{statusLabelMap[record.status] || record.status}</Tag>
         ),
       },
       {
@@ -243,64 +327,78 @@ const BackupList: React.FC = () => {
         key: 'actions',
         width: 280,
         fixed: 'right',
-        render: (_v, record) => (
-          <Space size="small" wrap>
-            <Button
-              type="link"
-              size="small"
-              icon={<RollbackOutlined />}
-              onClick={() => handleOpenRestore(record)}
-              disabled={record.status !== 'Success'}
-            >
-              恢复
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              icon={<DownloadOutlined />}
-              onClick={() => handleDownload(record)}
-              disabled={record.status !== 'Success'}
-            >
-              下载
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              icon={<HistoryOutlined />}
-              onClick={() => {
-                const ns = record.namespace ? encodeURIComponent(record.namespace) : '_';
-                navigate(
-                  `/resources/${record.code}/${encodeURIComponent(record.apiVersion)}/${encodeURIComponent(
-                    record.kind,
-                  )}/${ns}/${encodeURIComponent(record.name)}/edit?tab=versions`,
-                );
-              }}
-            >
-              资源版本
-            </Button>
-            <Popconfirm
-              title={`确认删除备份「${record.name || record.id}」？`}
-              description="删除后备份文件也将被清理"
-              okButtonProps={{ danger: true }}
-              onConfirm={async () => {
-                try {
-                  await deleteBackup(record.id).unwrap();
-                  message.success('删除成功');
-                  handleReload();
-                } catch {
-                  // interceptor
-                }
-              }}
-            >
-              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-                删除
+        render: (_v, record) => {
+          const isBatch =
+            record.mode === 'namespace_batch' ||
+            (record.namespaces && record.namespaces.length > 1) ||
+            (record.kindFilter && record.kindFilter.length > 1);
+          return (
+            <Space size="small" wrap>
+              <Button
+                type="link"
+                size="small"
+                icon={<RollbackOutlined />}
+                onClick={() => handleOpenRestore(record)}
+                disabled={record.status !== 'Success' || !canRestore}
+              >
+                恢复
               </Button>
-            </Popconfirm>
-          </Space>
-        ),
+              <Button
+                type="link"
+                size="small"
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownload(record)}
+                disabled={record.status !== 'Success' || !canDownload}
+              >
+                下载
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                icon={<HistoryOutlined />}
+                disabled={isBatch || !record.name}
+                onClick={() => {
+                  const ns = record.namespace ? encodeURIComponent(record.namespace) : '_';
+                  navigate(
+                    `/resources/${record.code}/${encodeURIComponent(record.apiVersion)}/${encodeURIComponent(
+                      record.kind,
+                    )}/${ns}/${encodeURIComponent(record.name)}/edit?tab=versions`,
+                  );
+                }}
+              >
+                资源版本
+              </Button>
+              <Popconfirm
+                title={`确认删除备份「${record.name || `#${record.id}`}」？`}
+                description="删除后备份文件也将被清理"
+                okButtonProps={{ danger: true, disabled: !canDelete }}
+                onConfirm={async () => {
+                  if (!canDelete) return;
+                  try {
+                    await deleteBackup(record.id).unwrap();
+                    message.success('删除成功');
+                    handleReload();
+                  } catch {
+                    // interceptor
+                  }
+                }}
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  disabled={!canDelete}
+                >
+                  删除
+                </Button>
+              </Popconfirm>
+            </Space>
+          );
+        },
       },
     ],
-    [deleteBackup, handleReload, navigate],
+    [deleteBackup, handleReload, navigate, canRestore, canDownload, canDelete],
   );
 
   return (
@@ -382,15 +480,17 @@ const BackupList: React.FC = () => {
           <Button key="refresh" icon={<ReloadOutlined />} onClick={handleReload}>
             刷新
           </Button>,
-          <Button
-            key="create"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/backups/create')}
-          >
-            新建备份
-          </Button>,
-        ]}
+          canCreate && (
+            <Button
+              key="create"
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/backups/create')}
+            >
+              新建备份
+            </Button>
+          ),
+        ].filter(Boolean)}
         dataSource={data?.items || []}
         pagination={{
           current: filters.page || 1,

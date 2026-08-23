@@ -15,6 +15,7 @@ import {
   ProForm,
   ProFormItem,
   ProFormText,
+  ProFormTextArea,
 } from '@ant-design/pro-components';
 import {
   ArrowLeftOutlined,
@@ -208,11 +209,11 @@ const ClusterImport: React.FC = () => {
             ]}
             fieldProps={{ maxLength: 64, showCount: true }}
           />
-          <ProFormText
+          <ProFormTextArea
             name="description"
             label="描述"
             placeholder="可选，说明此集群的用途"
-            fieldProps={{ component: Input.TextArea, rows: 3, maxLength: 256, showCount: true }}
+            fieldProps={{ rows: 3, maxLength: 256, showCount: true }}
           />
 
           <ProFormItem label="Kubeconfig" required>

@@ -46,9 +46,20 @@ func (m *Manager) Init(ctx context.Context) error {
 
 	if m.cfg.Backup.NFS != nil {
 		nfs := storage.NewNFSStorage(m.cfg.Backup.NFS)
+		if pingErr := nfs.Ping(ctx); pingErr != nil {
+			// NFS 未挂载时给出警告，依然注册该类型（后续在创建备份时会再次失败，错误更明确）
+			m.log.Warnf("nfs storage ping failed: %v (registered anyway, will fail when used)", pingErr)
+		} else {
+			m.log.Infof("nfs storage ping ok (server=%s mount_point=%s)",
+				m.cfg.Backup.NFS.Server, m.cfg.Backup.NFS.MountPoint)
+		}
 		m.RegisterStorage(nfs)
-		m.log.Infof("🔌 plugin storage registered: nfs (base_path=%s) [MVP_TODO]",
-			m.cfg.Backup.NFS.BasePath)
+		mount := m.cfg.Backup.NFS.MountPoint
+		if mount == "" {
+			mount = m.cfg.Backup.NFS.BasePath
+		}
+		m.log.Infof("🔌 plugin storage registered: nfs (server=%s mount=%s)",
+			m.cfg.Backup.NFS.Server, mount)
 	}
 
 	if _, ok := m.storageMap[m.defaultStorage]; !ok {

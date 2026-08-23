@@ -5,6 +5,11 @@ dist-ssr/
 *.local
 .env.local
 .env.*.local
+# TypeScript build artifacts (tsc -b)
+**/*.tsbuildinfo
+# Compiled vite.config (vite.config.ts is source, .js/.d.ts are build output)
+/frontend/vite.config.js
+/frontend/vite.config.d.ts
 
 # ---- Backend (Go) ----
 *.exe

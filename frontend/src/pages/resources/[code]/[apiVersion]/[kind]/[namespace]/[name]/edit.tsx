@@ -34,7 +34,7 @@ import {
   HistoryOutlined,
   RollbackOutlined,
   SaveOutlined,
-  FileDiffOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -142,7 +142,13 @@ const ResourceEdit: React.FC = () => {
 
   const handleEditorWillMount = useCallback(
     (monaco: typeof import('monaco-editor')) => {
-      monaco.languages.yaml?.yamlDefaults?.setDiagnosticsOptions?.({
+      (monaco.languages as unknown as {
+        yaml?: {
+          yamlDefaults?: {
+            setDiagnosticsOptions?: (opts: { validate: boolean; enableSchemaRequest: boolean; hover: boolean; completion: boolean; schemas: unknown[] }) => void;
+          };
+        };
+      }).yaml?.yamlDefaults?.setDiagnosticsOptions?.({
         validate: true,
         enableSchemaRequest: false,
         hover: true,
@@ -342,7 +348,7 @@ const ResourceEdit: React.FC = () => {
             <Card
               title={
                 <Space>
-                  <FileDiffOutlined />
+                  <FileSearchOutlined />
                   <span>YAML 编辑器</span>
                 </Space>
               }
@@ -414,7 +420,7 @@ const ResourceEdit: React.FC = () => {
                             <Space>
                               <Tooltip title="请选择两个版本进行对比">
                                 <Button
-                                  icon={<FileDiffOutlined />}
+                                  icon={<FileSearchOutlined />}
                                   disabled={checkedSeqs.length !== 2}
                                   onClick={openCompare}
                                 >
@@ -517,7 +523,7 @@ const ResourceEdit: React.FC = () => {
             <Card
               title={
                 <Space>
-                  <FileDiffOutlined />
+                  <FileSearchOutlined />
                   摘要
                 </Space>
               }

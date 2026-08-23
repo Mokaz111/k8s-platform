@@ -4,14 +4,19 @@ import { axiosBaseQuery } from './axiosBaseQuery';
 export type StorageType = 'Local' | 'S3' | 'NFS';
 export type BackupStatus = 'Running' | 'Success' | 'Failed' | 'Pending';
 
+export type BackupMode = 'single' | 'namespace_batch';
+
 export interface Backup {
   id: string;
   code: string;
   clusterName?: string;
   namespace?: string;
+  namespaces?: string[];
   apiVersion: string;
   kind: string;
+  kindFilter?: string[];
   name: string;
+  mode?: BackupMode;
   storageType: StorageType;
   size?: number;
   status: BackupStatus;
@@ -39,12 +44,19 @@ export interface ListBackupsResponse {
 }
 
 export interface CreateBackupBody {
+  mode?: 'single' | 'namespace_batch';
   namespace?: string;
-  apiVersion: string;
-  kind: string;
-  name: string;
+  namespaces?: string[];
+  // 单对象模式用：
+  apiVersion?: string;
+  target_kind?: string;
+  kind?: string; // 兼容旧字段
+  target_name?: string;
+  name?: string; // 兼容旧字段
+  // 批量模式用：
+  kind_filter?: string[];
   storageType: StorageType;
-  scope?: 'object' | 'namespace';
+  scope?: 'object' | 'namespace' | 'namespace_batch';
 }
 
 export interface CreateBackupParams {

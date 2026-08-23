@@ -109,7 +109,8 @@ const ClusterList: React.FC = () => {
         dataIndex: 'status',
         key: 'status',
         width: 110,
-        render: (status: string) => {
+        render: (_dom, record) => {
+          const status = record.status;
           const color = statusColorMap[status] || 'default';
           return <Tag color={color}>{status || 'Unknown'}</Tag>;
         },
@@ -119,7 +120,7 @@ const ClusterList: React.FC = () => {
         dataIndex: 'lastSyncTime',
         key: 'lastSyncTime',
         width: 180,
-        render: (v) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-'),
+        render: (_dom, record) => (record.lastSyncTime ? dayjs(record.lastSyncTime).format('YYYY-MM-DD HH:mm:ss') : '-'),
       },
       {
         title: '操作',

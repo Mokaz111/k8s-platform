@@ -2,6 +2,9 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"mime"
 	"strconv"
 	"strings"
 
@@ -22,10 +25,31 @@ func NewBackupHandler(mgr *backup.Manager) *BackupHandler {
 }
 
 type createBackupReq struct {
-	Namespace   string `json:"namespace"`
-	TargetKind  string `json:"target_kind" binding:"required"`
-	TargetName  string `json:"target_name" binding:"required"`
-	StorageType string `json:"storage_type"`
+	Mode        string   `json:"mode"` // single / namespace_batch (兼容前端传 object/namespace)
+	Namespace   string   `json:"namespace"`
+	Namespaces  []string `json:"namespaces"`
+	TargetKind  string   `json:"target_kind"`
+	KindFilter  []string `json:"kind_filter"`
+	TargetName  string   `json:"target_name"`
+	StorageType string   `json:"storage_type"`
+	// legacy 前端兼容字段：
+	Scope string `json:"scope"` // "object" => single / "namespace" => namespace_batch
+}
+
+func modeFromRequest(reqMode, scope string) backup.BackupMode {
+	switch strings.ToLower(strings.TrimSpace(reqMode)) {
+	case "single", "object":
+		return backup.BackupModeSingle
+	case "namespace_batch", "namespace-batch", "batch", "namespace":
+		return backup.BackupModeNamespaceBatch
+	}
+	switch strings.ToLower(strings.TrimSpace(scope)) {
+	case "object", "single":
+		return backup.BackupModeSingle
+	case "namespace", "batch":
+		return backup.BackupModeNamespaceBatch
+	}
+	return backup.BackupModeSingle
 }
 
 func (h *BackupHandler) CreateBackup(c *gin.Context) {
@@ -41,30 +65,66 @@ func (h *BackupHandler) CreateBackup(c *gin.Context) {
 	}
 	req.TargetKind = strings.TrimSpace(req.TargetKind)
 	req.TargetName = strings.TrimSpace(req.TargetName)
-	if req.TargetKind == "" || req.TargetName == "" {
-		response.Fail(c, errcode.New(errcode.InvalidArgument, "target_kind 和 target_name 不能为空"))
-		return
-	}
 	req.Namespace = strings.TrimSpace(req.Namespace)
-
-	// RBAC 数据范围校验：namespace 为空（集群级资源）时退化为 cluster scope 校验
-	if err := middleware.RequireNamespaceScope(c, code, req.Namespace); err != nil {
-		response.Fail(c, err.(*errcode.Error))
-		return
-	}
+	mode := modeFromRequest(req.Mode, req.Scope)
 
 	operatorID := getCurrentUserID(c)
 	operator := getCurrentUsername(c)
 
-	task, err := h.Mgr.SubmitBackupTask(context.Background(), &backup.SubmitBackupInput{
+	in := &backup.SubmitBackupInput{
 		ClusterCode: code,
-		Namespace:   strings.TrimSpace(req.Namespace),
-		TargetKind:  req.TargetKind,
-		TargetName:  req.TargetName,
-		StorageType: strings.TrimSpace(req.StorageType),
+		Mode:        mode,
+		StorageType: req.StorageType,
 		Operator:    operator,
 		OperatorID:  operatorID,
-	})
+	}
+	switch mode {
+	case backup.BackupModeSingle:
+		in.Namespace = req.Namespace
+		in.TargetKind = req.TargetKind
+		in.TargetName = req.TargetName
+		if in.TargetKind == "" || in.TargetName == "" {
+			response.Fail(c, errcode.New(errcode.InvalidArgument, "target_kind 和 target_name 不能为空"))
+			return
+		}
+		// RBAC 数据范围校验：namespace 为空（集群级资源）时退化为 cluster scope 校验
+		if err := middleware.RequireNamespaceScope(c, code, in.Namespace); err != nil {
+			response.Fail(c, err.(*errcode.Error))
+			return
+		}
+	case backup.BackupModeNamespaceBatch:
+		// 合并 namespaces：兼容旧前端用 scope=namespace 且 namespace 单值
+		in.Namespaces = req.Namespaces
+		if len(in.Namespaces) == 0 && req.Namespace != "" {
+			in.Namespaces = []string{req.Namespace}
+		}
+		in.KindFilter = req.KindFilter
+		if len(in.KindFilter) == 0 && req.TargetKind != "" {
+			in.KindFilter = []string{req.TargetKind}
+		}
+		if len(in.Namespaces) == 0 {
+			response.Fail(c, errcode.New(errcode.InvalidArgument, "命名空间批量模式必须至少选择一个命名空间"))
+			return
+		}
+		if len(in.KindFilter) == 0 {
+			response.Fail(c, errcode.New(errcode.InvalidArgument, "命名空间批量模式必须至少选择一种资源类型"))
+			return
+		}
+		// 批量模式：RBAC 对每个 namespaces 做范围校验；若有任一个命名空间无权限则失败
+		for _, ns := range in.Namespaces {
+			if err := middleware.RequireNamespaceScope(c, code, ns); err != nil {
+				response.Fail(c, err.(*errcode.Error))
+				return
+			}
+		}
+		// 同时要求 cluster scope 校验（整体 backup:create 已经挂了，但对集群对象导出也需要 cluster 级访问）
+		if err := middleware.RequireClusterScope(c, code); err != nil {
+			response.Fail(c, err.(*errcode.Error))
+			return
+		}
+	}
+
+	task, err := h.Mgr.SubmitBackupTask(context.Background(), in)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
 			response.Fail(c, ec)
@@ -82,6 +142,7 @@ func (h *BackupHandler) ListBackups(c *gin.Context) {
 	clusterCode := c.Query("cluster_code")
 	statusStr := c.Query("status")
 	keyword := c.Query("keyword")
+	backupType := c.Query("backup_type")
 
 	var status models.BackupTaskStatus
 	switch statusStr {
@@ -99,16 +160,14 @@ func (h *BackupHandler) ListBackups(c *gin.Context) {
 		ClusterCode: clusterCode,
 		Status:      status,
 		Keyword:     keyword,
+		BackupType:  backupType,
 	}
 
 	// RBAC 数据范围过滤：
-	//   - 带 cluster_code（单集群场景）：按用户可访问的命名空间过滤
-	//   - 不带 cluster_code（跨集群场景）：按用户可访问的集群列表过滤
 	if clusterCode != "" {
 		nsList, isFull := middleware.AllowedNamespaces(c, clusterCode)
 		if !isFull {
 			if len(nsList) == 0 {
-				// namespace scope 用户对该集群无任何命名空间权，直接返回空
 				response.OKList(c, 0, []models.BackupTask{})
 				return
 			}
@@ -153,7 +212,6 @@ func (h *BackupHandler) GetBackup(c *gin.Context) {
 		}
 		return
 	}
-	// RBAC 数据范围校验：用户只能查看自己有权限的集群/命名空间的备份
 	nsStr := ""
 	if item.Namespace != nil {
 		nsStr = *item.Namespace
@@ -165,9 +223,82 @@ func (h *BackupHandler) GetBackup(c *gin.Context) {
 	response.OK(c, item)
 }
 
+// DownloadBackup 下载单个备份 YAML（支持 local/nfs 任意存储类型，Manager 内部做 storage_path 语义兼容）
+func (h *BackupHandler) DownloadBackup(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil || id == 0 {
+		response.Fail(c, errcode.New(errcode.InvalidArgument, "id 无效"))
+		return
+	}
+	// 先 Get 一次：顺便做 RBAC 数据范围校验
+	item, gerr := h.Mgr.Get(context.Background(), id)
+	if gerr != nil {
+		if ec, ok := gerr.(*errcode.Error); ok {
+			response.Fail(c, ec)
+		} else {
+			response.Fail(c, errcode.Wrap(errcode.Internal, gerr))
+		}
+		return
+	}
+	nsStr := ""
+	if item.Namespace != nil {
+		nsStr = *item.Namespace
+	}
+	if err := middleware.RequireNamespaceScope(c, item.ClusterCode, nsStr); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+
+	res, derr := h.Mgr.Download(context.Background(), id)
+	if derr != nil {
+		if ec, ok := derr.(*errcode.Error); ok {
+			response.Fail(c, ec)
+		} else {
+			response.Fail(c, errcode.Wrap(errcode.Internal, derr))
+		}
+		return
+	}
+	defer res.Reader.Close()
+
+	contentType := res.ContentType
+	if contentType == "" {
+		contentType = "application/yaml"
+	}
+	// 将中文名做 MIME 编码，避免浏览器下载文件名乱码
+	encodedName := mime.QEncoding.Encode("UTF-8", res.SuggestName)
+	c.Header("Content-Disposition",
+		fmt.Sprintf("attachment; filename=\"%s\"; filename*=UTF-8''%s", res.SuggestName, encodedName))
+	c.Header("Content-Type", contentType)
+	if res.SizeBytes > 0 {
+		c.Header("Content-Length", fmt.Sprintf("%d", res.SizeBytes))
+	}
+	c.Status(200)
+	// 流式传输：边读边写 + 定期 flush，避免大文件把内存撑爆
+	buf := make([]byte, 256*1024)
+	wr := c.Writer
+	for {
+		n, rerr := res.Reader.Read(buf)
+		if n > 0 {
+			if _, werr := wr.Write(buf[:n]); werr != nil {
+				break
+			}
+			wr.Flush()
+		}
+		if rerr != nil {
+			if rerr != io.EOF {
+				_ = rerr
+			}
+			break
+		}
+	}
+}
+
 type restoreBackupReq struct {
-	TargetClusterCode string `json:"target_cluster_code"`
-	Mode              string `json:"mode"`
+	TargetCluster   string `json:"target_cluster_code"`
+	TargetClusterV2 string `json:"target_cluster"` // 兼容前端两种 key
+	Mode            string `json:"mode"`
+	TargetNamespace string `json:"target_namespace"` // 恢复到指定命名空间（可选）
 }
 
 func (h *BackupHandler) RestoreBackup(c *gin.Context) {
@@ -187,7 +318,6 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 		mode = backup.RestoreModeCreateNew
 	}
 
-	// 先查源备份，做 RBAC 数据范围校验
 	src, err := h.Mgr.Get(context.Background(), id)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
@@ -201,13 +331,14 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 	if src.Namespace != nil {
 		srcNS = *src.Namespace
 	}
-	// 校验对源备份所在集群/命名空间的读权限
 	if err := middleware.RequireNamespaceScope(c, src.ClusterCode, srcNS); err != nil {
 		response.Fail(c, err.(*errcode.Error))
 		return
 	}
-	// 确定目标集群并校验写权限（恢复是集群级写操作）
-	targetCode := strings.TrimSpace(req.TargetClusterCode)
+	targetCode := strings.TrimSpace(req.TargetCluster)
+	if targetCode == "" {
+		targetCode = strings.TrimSpace(req.TargetClusterV2)
+	}
 	if targetCode == "" {
 		targetCode = src.ClusterCode
 	}
@@ -221,7 +352,8 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 
 	task, err := h.Mgr.SubmitRestoreTask(context.Background(), &backup.SubmitRestoreInput{
 		BackupID:          id,
-		TargetClusterCode: strings.TrimSpace(req.TargetClusterCode),
+		TargetClusterCode: targetCode,
+		TargetNamespace:   strings.TrimSpace(req.TargetNamespace),
 		Operator:          operator,
 		OperatorID:        operatorID,
 		Mode:              mode,
@@ -244,7 +376,6 @@ func (h *BackupHandler) DeleteBackup(c *gin.Context) {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "id 无效"))
 		return
 	}
-	// 先查备份，做 RBAC 数据范围校验，再删除
 	item, err := h.Mgr.Get(context.Background(), id)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {

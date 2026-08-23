@@ -20,6 +20,11 @@ func RegisterBackupRoutes(rg *gin.RouterGroup, h *handler.BackupHandler) {
 			RequirePermission("backup:list"),
 			h.GetBackup)
 
+		// 下载备份文件：统一通过 Manager.Download → storage.Download 处理
+		backups.GET("/:id/download",
+			RequirePermission("backup:list"),
+			h.DownloadBackup)
+
 		backups.POST("/:id/restore",
 			RequirePermission("backup:restore"),
 			h.RestoreBackup)

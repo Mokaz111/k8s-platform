@@ -184,7 +184,7 @@ export const rbacApi = createApi({
             ]
           : [{ type: 'Role', id: 'LIST' }],
     }),
-    createRole: builder.mutation<{ code: string }, CreateRoleBody>({
+    createRole: builder.mutation<{ code: string; message?: string }, CreateRoleBody>({
       query: (body) => ({ url: '/roles', method: 'POST', data: body }),
       invalidatesTags: [{ type: 'Role', id: 'LIST' }],
     }),
@@ -237,7 +237,7 @@ export const rbacApi = createApi({
             ]
           : [{ type: 'User', id: 'LIST' }],
     }),
-    createUser: builder.mutation<{ id: number; username: string }, CreateUserBody>({
+    createUser: builder.mutation<{ id: number; username: string; message?: string }, CreateUserBody>({
       query: (body) => ({ url: '/users', method: 'POST', data: body }),
       invalidatesTags: [{ type: 'User', id: 'LIST' }],
     }),

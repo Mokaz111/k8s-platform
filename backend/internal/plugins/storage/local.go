@@ -38,7 +38,10 @@ func (s *LocalStorage) Ping(ctx context.Context) error {
 }
 
 func (s *LocalStorage) Upload(ctx context.Context, key string, reader io.Reader) (*UploadResult, error) {
-	fullPath := filepath.Join(s.baseDir, key)
+	fullPath, err := safeJoin(s.baseDir, key)
+	if err != nil {
+		return nil, err
+	}
 	dir := filepath.Dir(fullPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("mkdir %s: %w", dir, err)
@@ -56,9 +59,10 @@ func (s *LocalStorage) Upload(ctx context.Context, key string, reader io.Reader)
 		return nil, fmt.Errorf("write file %s: %w", fullPath, err)
 	}
 
+	// 统一语义：StoragePath 存储相对 key（不再是绝对路径），与 NFS/S3 保持一致
 	return &UploadResult{
 		SizeBytes:   int64(len(data)),
-		StoragePath: fullPath,
+		StoragePath: key,
 	}, nil
 }
 

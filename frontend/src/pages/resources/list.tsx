@@ -32,6 +32,7 @@ import {
 } from '@/app/services/resource';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
+import { usePermission } from '@/hooks/usePermission';
 
 dayjs.extend(relativeTime);
 
@@ -83,6 +84,10 @@ const ResourceList: React.FC = () => {
   const actionRef = React.useRef<ActionType>();
   const selectedClusterCode = useAppSelector((s) => s.app.selectedClusterCode);
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hasPerm } = usePermission();
+  const canEdit = hasPerm('resource:edit');
+  const canDelete = hasPerm('resource:delete');
+  const canBackup = hasPerm('backup:create');
 
   const clusterCodeParam = searchParams.get('cluster_code');
   const tabParam = (searchParams.get('tab') as ResourceTab) || 'workload';
@@ -225,14 +230,15 @@ const ResourceList: React.FC = () => {
         dataIndex: ['metadata', 'namespace'],
         key: 'namespace',
         width: 140,
-        render: (v) => v || '（集群级）',
+        render: (_dom, record) => record.metadata?.namespace || '（集群级）',
       },
       {
         title: 'Age',
         dataIndex: ['metadata', 'creationTimestamp'],
         key: 'age',
         width: 140,
-        render: (v: string | undefined) => {
+        render: (_dom, record) => {
+          const v = record.metadata?.creationTimestamp;
           if (!v) return '-';
           const t = dayjs(v);
           return (
@@ -260,6 +266,7 @@ const ResourceList: React.FC = () => {
                 size="small"
                 icon={<FileTextOutlined />}
                 onClick={() => navigate(editUrl(item))}
+                disabled={!canEdit}
               >
                 查看 YAML
               </Button>
@@ -268,14 +275,16 @@ const ResourceList: React.FC = () => {
                 size="small"
                 icon={<EditOutlined />}
                 onClick={() => navigate(editUrl(item))}
+                disabled={!canEdit}
               >
                 编辑
               </Button>
               <Popconfirm
                 title={`确定删除 ${kind}「${name}」?`}
                 description="删除后该资源将从集群中移除"
-                okButtonProps={{ danger: true }}
+                okButtonProps={{ danger: true, disabled: !canDelete }}
                 onConfirm={async () => {
+                  if (!canDelete) return;
                   try {
                     await deleteResource({
                       code: clusterCode || '',
@@ -291,7 +300,13 @@ const ResourceList: React.FC = () => {
                   }
                 }}
               >
-                <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  disabled={!canDelete}
+                >
                   删除
                 </Button>
               </Popconfirm>
@@ -300,6 +315,7 @@ const ResourceList: React.FC = () => {
                 size="small"
                 icon={<HistoryOutlined />}
                 onClick={() => navigate(editUrl(item) + '?tab=versions')}
+                disabled={!canEdit}
               >
                 版本历史
               </Button>
@@ -308,6 +324,7 @@ const ResourceList: React.FC = () => {
                 size="small"
                 icon={<CloudServerOutlined />}
                 onClick={() => navigate(backupUrl(item))}
+                disabled={!canBackup}
               >
                 备份
               </Button>
@@ -323,6 +340,9 @@ const ResourceList: React.FC = () => {
       deleteResource,
       handleReload,
       navigate,
+      canEdit,
+      canDelete,
+      canBackup,
     ],
   );
 

@@ -3,7 +3,7 @@ import { Card, Form, Select, Space, Tag, Typography } from 'antd';
 import { PageContainer } from '@ant-design/pro-components';
 import { ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useListClustersQuery } from '@/app/services/cluster';
+import { useListClustersQuery, type Cluster } from '@/app/services/cluster';
 import {
   KubernetesResource,
   useListNamespacesQuery,
@@ -41,7 +41,7 @@ const PodLogsPage: React.FC = () => {
   const { data: clusterData } = useListClustersQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
-  const clusters = clusterData?.list || [];
+  const clusters = clusterData?.items || [];
 
   const { data: namespaces } = useListNamespacesQuery(clusterCode || '', {
     skip: !clusterCode,
@@ -110,7 +110,7 @@ const PodLogsPage: React.FC = () => {
                 setPodName('');
                 setContainerName(undefined);
               }}
-              options={clusters.map((c) => ({
+              options={clusters.map((c: Cluster) => ({
                 value: c.code,
                 label: `${c.name} (${c.code})`,
               }))}
