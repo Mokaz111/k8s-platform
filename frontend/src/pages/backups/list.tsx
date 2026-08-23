@@ -9,6 +9,7 @@ import {
   Modal,
   Popconfirm,
   Row,
+  Select,
   Space,
   Tag,
   message,
@@ -32,11 +33,12 @@ import {
   BackupMode,
   BackupStatus,
   StorageType,
+  downloadBackupById,
   useDeleteBackupMutation,
   useListBackupsQuery,
   useRestoreBackupMutation,
 } from '@/app/services/backup';
-import { download } from '@/app/services/request';
+import { useListClustersQuery } from '@/app/services/cluster';
 import { BackupProgressPanel } from '@/components/ws';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -84,10 +86,25 @@ const BackupList: React.FC = () => {
   const [searchParams] = useSearchParams();
   const codeParam = searchParams.get('code') || undefined;
   const { hasPerm } = usePermission();
+  const canView = hasPerm('backup:view') || hasPerm('backup:list') || hasPerm('backup:get');
   const canCreate = hasPerm('backup:create');
   const canRestore = hasPerm('backup:restore');
   const canDownload = hasPerm('backup:download');
   const canDelete = hasPerm('backup:delete');
+
+  // 集群列表，用于恢复表单的目标集群下拉
+  const { data: clustersData } = useListClustersQuery(
+    { page: 1, size: 200 },
+    { refetchOnMountOrArgChange: true },
+  );
+  const clusterOptions = useMemo(
+    () =>
+      (clustersData?.items || []).map((c) => ({
+        label: c.name ? `${c.name} (${c.code})` : c.code,
+        value: c.code,
+      })),
+    [clustersData],
+  );
 
   const [filters, setFilters] = useState<ListFilters>({
     keyword: '',
@@ -145,15 +162,7 @@ const BackupList: React.FC = () => {
       return;
     }
     try {
-      const isBatch =
-        record.mode === 'namespace_batch' ||
-        (record.namespaces && record.namespaces.length > 1) ||
-        (record.kindFilter && record.kindFilter.length > 1);
-      const ext = isBatch ? 'tar.gz' : 'yaml';
-      const namePart = record.name || (isBatch ? 'batch' : record.kind) || record.id;
-      const filename = `backup-${record.code}-${namePart}-${record.id}.${ext}`;
-      const url = record.downloadUrl || `/backups/${record.id}/download`;
-      await download(url, filename);
+      await downloadBackupById(record);
       message.success('开始下载');
     } catch {
       message.error('下载失败');
@@ -541,10 +550,16 @@ const BackupList: React.FC = () => {
               <Form.Item
                 label="目标集群"
                 name="targetCluster"
-                rules={[{ required: true, message: '请输入目标集群编码' }]}
+                rules={[{ required: true, message: '请选择目标集群' }]}
                 help="可以恢复到当前集群或其它已导入的集群"
               >
-                <Input placeholder="请输入目标集群编码" allowClear />
+                <Select
+                  placeholder="请选择目标集群"
+                  options={clusterOptions}
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                />
               </Form.Item>
               <Form.Item
                 label="目标命名空间"

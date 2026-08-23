@@ -40,6 +40,7 @@ interface ImportFormValues {
   code: string;
   description?: string;
   kubeconfig?: string;
+  labels?: string;
 }
 
 const ClusterImport: React.FC = () => {
@@ -122,11 +123,16 @@ const ClusterImport: React.FC = () => {
         message.error('请提供 Kubeconfig 内容');
         return;
       }
+      if (!pingResult?.success) {
+        message.error('请先点击「测试连接」并确保连接成功后再导入');
+        return;
+      }
       await importCluster({
         name: values.name,
         code: values.code,
         description: values.description,
-        kubeconfig: kc,
+        kubeconfig_text: kc,
+        labels: values.labels,
       }).unwrap();
       message.success('集群导入成功');
       navigate('/clusters/list');
@@ -214,6 +220,31 @@ const ClusterImport: React.FC = () => {
             label="描述"
             placeholder="可选，说明此集群的用途"
             fieldProps={{ rows: 3, maxLength: 256, showCount: true }}
+          />
+
+          <ProFormTextArea
+            name="labels"
+            label="标签 (JSON)"
+            placeholder='可选，例如 {"env": "prod", "team": "sre"}；将被保存为 labels.json 字段'
+            fieldProps={{
+              rows: 2,
+              maxLength: 2048,
+              showCount: true,
+              style: { fontFamily: 'monospace' },
+            }}
+            rules={[
+              {
+                validator: (_: unknown, value: unknown) => {
+                  if (value === undefined || value === null || value === '') return Promise.resolve();
+                  try {
+                    JSON.parse(String(value));
+                    return Promise.resolve();
+                  } catch {
+                    return Promise.reject(new Error('labels 必须是合法 JSON'));
+                  }
+                },
+              },
+            ]}
           />
 
           <ProFormItem label="Kubeconfig" required>

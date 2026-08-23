@@ -28,12 +28,17 @@ export interface ImportClusterData {
   name: string;
   code: string;
   description?: string;
-  kubeconfig?: string;
+  kubeconfig_text?: string;
+  kubeconfig_base64?: string;
+  labels?: string;
 }
 
 export interface UpdateClusterData {
   name?: string;
   description?: string;
+  kubeconfig_text?: string;
+  kubeconfig_base64?: string;
+  labels?: string;
 }
 
 export interface PingResponse {

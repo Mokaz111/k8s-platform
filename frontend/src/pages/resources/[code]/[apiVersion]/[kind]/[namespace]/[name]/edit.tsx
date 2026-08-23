@@ -247,10 +247,10 @@ const ResourceEdit: React.FC = () => {
     setDiffLeft('');
     setDiffRight('');
     const [a, b] = [...checkedSeqs].sort((x, y) => x - y);
-    const gvk = `${apiVersionPath}/${kind}`;
     getVersionDiff({
       code,
-      gvk,
+      apiVersion: apiVersionPath,
+      kind,
       namespace,
       name,
       seqA: a,
@@ -277,10 +277,10 @@ const ResourceEdit: React.FC = () => {
       okText: '确认回滚',
       onOk: async () => {
         try {
-          const gvk = `${apiVersionPath}/${kind}`;
           const res = await rollbackVersion({
             code,
-            gvk,
+            apiVersion: apiVersionPath,
+            kind,
             namespace,
             name,
             seq,

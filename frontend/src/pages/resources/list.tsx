@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
+  Drawer,
   Input,
   Popconfirm,
   Radio,
@@ -12,11 +13,14 @@ import {
 } from 'antd';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
+import Editor, { loader } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
   HistoryOutlined,
+  PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
   CloudServerOutlined,
@@ -26,6 +30,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import {
   KubernetesResource,
+  useCreateResourceMutation,
   useDeleteResourceMutation,
   useListNamespacesQuery,
   useListResourcesQuery,
@@ -36,47 +41,131 @@ import { usePermission } from '@/hooks/usePermission';
 
 dayjs.extend(relativeTime);
 
-type ResourceTab = 'workload' | 'config' | 'storage';
+loader.config({
+  paths: {
+    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs',
+  },
+});
+
+type ResourceTab = 'workload' | 'network' | 'config' | 'storage';
 
 interface KindGroup {
   key: ResourceTab;
   label: string;
-  kinds: { label: string; value: string; apiVersion: string }[];
+  kinds: { label: string; value: string; apiVersion: string; clusterScoped?: boolean }[];
 }
 
 const KIND_GROUPS: KindGroup[] = [
   {
     key: 'workload',
-    label: 'Workloads',
+    label: '工作负载',
     kinds: [
       { label: 'Deployment', value: 'Deployment', apiVersion: 'apps/v1' },
       { label: 'StatefulSet', value: 'StatefulSet', apiVersion: 'apps/v1' },
       { label: 'DaemonSet', value: 'DaemonSet', apiVersion: 'apps/v1' },
       { label: 'Job', value: 'Job', apiVersion: 'batch/v1' },
       { label: 'CronJob', value: 'CronJob', apiVersion: 'batch/v1' },
+      { label: 'Pod', value: 'Pod', apiVersion: 'v1' },
+    ],
+  },
+  {
+    key: 'network',
+    label: '网络',
+    kinds: [
+      { label: 'Service', value: 'Service', apiVersion: 'v1' },
+      { label: 'Ingress', value: 'Ingress', apiVersion: 'networking.k8s.io/v1' },
+      { label: 'NetworkPolicy', value: 'NetworkPolicy', apiVersion: 'networking.k8s.io/v1' },
+      { label: 'Endpoints', value: 'Endpoints', apiVersion: 'v1' },
     ],
   },
   {
     key: 'config',
-    label: 'Config',
+    label: '配置',
     kinds: [
       { label: 'ConfigMap', value: 'ConfigMap', apiVersion: 'v1' },
       { label: 'Secret', value: 'Secret', apiVersion: 'v1' },
+      { label: 'Namespace', value: 'Namespace', apiVersion: 'v1', clusterScoped: true },
+      { label: 'ServiceAccount', value: 'ServiceAccount', apiVersion: 'v1' },
+      { label: 'ResourceQuota', value: 'ResourceQuota', apiVersion: 'v1' },
+      { label: 'LimitRange', value: 'LimitRange', apiVersion: 'v1' },
     ],
   },
   {
     key: 'storage',
-    label: 'Storage',
+    label: '存储',
     kinds: [
-      { label: 'PersistentVolume', value: 'PersistentVolume', apiVersion: 'v1' },
+      { label: 'PersistentVolume', value: 'PersistentVolume', apiVersion: 'v1', clusterScoped: true },
       { label: 'PersistentVolumeClaim', value: 'PersistentVolumeClaim', apiVersion: 'v1' },
-      { label: 'StorageClass', value: 'StorageClass', apiVersion: 'storage.k8s.io/v1' },
+      { label: 'StorageClass', value: 'StorageClass', apiVersion: 'storage.k8s.io/v1', clusterScoped: true },
+      { label: 'VolumeAttachment', value: 'VolumeAttachment', apiVersion: 'storage.k8s.io/v1', clusterScoped: true },
     ],
   },
 ];
 
-const ALL_KINDS_MAP: Record<string, string> = {};
-KIND_GROUPS.forEach((g) => g.kinds.forEach((k) => (ALL_KINDS_MAP[k.value] = k.apiVersion)));
+const ALL_KINDS_MAP: Record<string, { apiVersion: string; clusterScoped?: boolean }> = {};
+KIND_GROUPS.forEach((g) =>
+  g.kinds.forEach((k) => (ALL_KINDS_MAP[k.value] = { apiVersion: k.apiVersion, clusterScoped: k.clusterScoped })),
+);
+
+const CLUSTER_SCOPED_NS = '__cluster__';
+
+const defaultYamlTemplate = (apiVersion: string, kind: string, namespace?: string, name?: string): string => {
+  const lines = [
+    `apiVersion: ${apiVersion}`,
+    `kind: ${kind}`,
+    'metadata:',
+  ];
+  if (name) {
+    lines.push(`  name: ${name}`);
+  } else {
+    lines.push(`  name: example-${kind.toLowerCase()}`);
+  }
+  if (!ALL_KINDS_MAP[kind]?.clusterScoped && namespace && namespace !== CLUSTER_SCOPED_NS) {
+    lines.push(`  namespace: ${namespace}`);
+  }
+  lines.push('  labels:');
+  lines.push('    app: example');
+  if (kind === 'Deployment') {
+    lines.push('spec:');
+    lines.push('  replicas: 1');
+    lines.push('  selector:');
+    lines.push('    matchLabels:');
+    lines.push('      app: example');
+    lines.push('  template:');
+    lines.push('    metadata:');
+    lines.push('      labels:');
+    lines.push('        app: example');
+    lines.push('    spec:');
+    lines.push('      containers:');
+    lines.push('        - name: main');
+    lines.push('          image: nginx:alpine');
+    lines.push('          ports:');
+    lines.push('            - containerPort: 80');
+  } else if (kind === 'Service') {
+    lines.push('spec:');
+    lines.push('  type: ClusterIP');
+    lines.push('  selector:');
+    lines.push('    app: example');
+    lines.push('  ports:');
+    lines.push('    - port: 80');
+    lines.push('      targetPort: 80');
+  } else if (kind === 'ConfigMap') {
+    lines.push('data:');
+    lines.push('  key1: value1');
+    lines.push('  key2: value2');
+  } else if (kind === 'Secret') {
+    lines.push('type: Opaque');
+    lines.push('data:');
+    lines.push('  # 注意：Secret data 需要 base64 编码');
+    lines.push('  password: cGFzc3dvcmQ=');
+  } else if (kind === 'Namespace') {
+    // Namespace 不支持 namespace 和 labels 后面的内容
+    return `apiVersion: v1\nkind: Namespace\nmetadata:\n  name: ${name || 'example-namespace'}\n`;
+  } else {
+    lines.push('spec: {}');
+  }
+  return lines.join('\n') + '\n';
+};
 
 const ResourceList: React.FC = () => {
   const navigate = useNavigate();
@@ -85,7 +174,9 @@ const ResourceList: React.FC = () => {
   const selectedClusterCode = useAppSelector((s) => s.app.selectedClusterCode);
   const [searchParams, setSearchParams] = useSearchParams();
   const { hasPerm } = usePermission();
-  const canEdit = hasPerm('resource:edit');
+  const canView = hasPerm('resource:view') || hasPerm('resource:get') || hasPerm('resource:list');
+  const canCreate = hasPerm('resource:create');
+  const canUpdate = hasPerm('resource:update') || hasPerm('resource:edit');
   const canDelete = hasPerm('resource:delete');
   const canBackup = hasPerm('backup:create');
 
@@ -103,6 +194,11 @@ const ResourceList: React.FC = () => {
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
+
+  // 创建资源 Drawer
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
+  const [createYaml, setCreateYaml] = useState<string>('');
+  const editorMountRef = React.useRef<editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     const newCode = clusterCodeParam || selectedClusterCode;
@@ -125,31 +221,48 @@ const ResourceList: React.FC = () => {
   }, [clusterCode, tab, kind, namespace, setSearchParams]);
 
   const currentGroup = KIND_GROUPS.find((g) => g.key === tab) || KIND_GROUPS[0];
-  const apiVersion = ALL_KINDS_MAP[kind] || currentGroup.kinds[0].apiVersion;
+  const kindMeta = ALL_KINDS_MAP[kind] || currentGroup.kinds[0];
+  const apiVersion = kindMeta.apiVersion;
+  const isClusterScoped = !!kindMeta.clusterScoped;
 
   const { data: namespaceData } = useListNamespacesQuery(clusterCode || '', {
-    skip: !clusterCode,
+    skip: !clusterCode || isClusterScoped,
     refetchOnMountOrArgChange: true,
   });
   const namespaceOptions = useMemo(() => {
+    if (isClusterScoped) {
+      return [{ label: '（集群级资源，无 Namespace）', value: CLUSTER_SCOPED_NS }];
+    }
     const base = namespaceData || ['default'];
     return [
       { label: '（全部命名空间）', value: '' },
       ...base.map((n) => ({ label: n, value: n })),
     ];
-  }, [namespaceData]);
+  }, [namespaceData, isClusterScoped]);
+
+  // 切换 kind 如果是集群级，自动清 namespace 为 __cluster__
+  useEffect(() => {
+    if (isClusterScoped && namespace !== CLUSTER_SCOPED_NS) {
+      setNamespace(CLUSTER_SCOPED_NS);
+    }
+    if (!isClusterScoped && namespace === CLUSTER_SCOPED_NS) {
+      setNamespace('');
+    }
+  }, [isClusterScoped, namespace]);
+
+  const effectiveNs = isClusterScoped ? undefined : namespace || undefined;
 
   const listParams = useMemo(
     () => ({
       code: clusterCode || '',
       apiVersion,
       kind,
-      namespace: namespace || undefined,
+      namespace: effectiveNs,
       page,
       size,
       keyword: keyword || undefined,
     }),
-    [clusterCode, apiVersion, kind, namespace, page, size, keyword],
+    [clusterCode, apiVersion, kind, effectiveNs, page, size, keyword],
   );
 
   const { data, refetch, isFetching } = useListResourcesQuery(listParams, {
@@ -158,13 +271,54 @@ const ResourceList: React.FC = () => {
   });
 
   const [deleteResource] = useDeleteResourceMutation();
+  const [createResource, { isLoading: createLoading }] = useCreateResourceMutation();
 
   const handleReload = useCallback(() => {
     refetch();
   }, [refetch]);
 
+  const openCreateDrawer = () => {
+    if (!clusterCode) {
+      message.warning('请先选择一个集群');
+      return;
+    }
+    if (!canCreate) {
+      message.error('无创建资源权限');
+      return;
+    }
+    const tmpl = defaultYamlTemplate(
+      apiVersion,
+      kind,
+      isClusterScoped ? undefined : namespace || 'default',
+    );
+    setCreateYaml(tmpl);
+    setCreateDrawerOpen(true);
+  };
+
+  const handleCreateConfirm = async () => {
+    if (!clusterCode) return;
+    if (!createYaml.trim()) {
+      message.error('YAML 内容不能为空');
+      return;
+    }
+    try {
+      await createResource({
+        code: clusterCode,
+        apiVersion,
+        kind,
+        yaml: createYaml,
+      }).unwrap();
+      message.success('创建成功');
+      setCreateDrawerOpen(false);
+      handleReload();
+    } catch {
+      // interceptor handles errors
+    }
+  };
+
   const editUrl = (item: KubernetesResource): string => {
-    const ns = encodeURIComponent(item.metadata?.namespace || '_');
+    const itemNs = item.metadata?.namespace;
+    const ns = itemNs ? encodeURIComponent(itemNs) : encodeURIComponent('_');
     const n = encodeURIComponent(item.metadata?.name || '');
     const k = encodeURIComponent(kind);
     const av = encodeURIComponent(apiVersion);
@@ -201,7 +355,13 @@ const ResourceList: React.FC = () => {
             <Space direction="vertical" size={0} style={{ maxWidth: '100%' }}>
               <a
                 style={{ fontWeight: 600, wordBreak: 'break-all' }}
-                onClick={() => navigate(editUrl(item))}
+                onClick={() => {
+                  if (!canView && !canUpdate) {
+                    message.error('无查看资源权限');
+                    return;
+                  }
+                  navigate(editUrl(item));
+                }}
               >
                 {item.metadata?.name || '-'}
               </a>
@@ -230,7 +390,7 @@ const ResourceList: React.FC = () => {
         dataIndex: ['metadata', 'namespace'],
         key: 'namespace',
         width: 140,
-        render: (_dom, record) => record.metadata?.namespace || '（集群级）',
+        render: (_dom, record) => record.metadata?.namespace || <Tag>（集群级）</Tag>,
       },
       {
         title: 'Age',
@@ -254,19 +414,26 @@ const ResourceList: React.FC = () => {
       {
         title: '操作',
         key: 'actions',
-        width: 360,
+        width: 400,
         fixed: 'right',
         render: (_v, item) => {
           const ns = item.metadata?.namespace;
           const name = item.metadata?.name || '';
+          const canViewItem = canView || canUpdate;
           return (
             <Space size="small" wrap>
               <Button
                 type="link"
                 size="small"
                 icon={<FileTextOutlined />}
-                onClick={() => navigate(editUrl(item))}
-                disabled={!canEdit}
+                onClick={() => {
+                  if (!canViewItem) {
+                    message.error('无查看资源权限');
+                    return;
+                  }
+                  navigate(editUrl(item));
+                }}
+                disabled={!canViewItem}
               >
                 查看 YAML
               </Button>
@@ -274,10 +441,31 @@ const ResourceList: React.FC = () => {
                 type="link"
                 size="small"
                 icon={<EditOutlined />}
-                onClick={() => navigate(editUrl(item))}
-                disabled={!canEdit}
+                onClick={() => {
+                  if (!canUpdate) {
+                    message.error('无编辑资源权限');
+                    return;
+                  }
+                  navigate(editUrl(item));
+                }}
+                disabled={!canUpdate}
               >
                 编辑
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                icon={<HistoryOutlined />}
+                onClick={() => {
+                  if (!canViewItem) {
+                    message.error('无查看资源权限');
+                    return;
+                  }
+                  navigate(editUrl(item) + '?tab=versions');
+                }}
+                disabled={!canViewItem}
+              >
+                版本历史
               </Button>
               <Popconfirm
                 title={`确定删除 ${kind}「${name}」?`}
@@ -313,17 +501,14 @@ const ResourceList: React.FC = () => {
               <Button
                 type="link"
                 size="small"
-                icon={<HistoryOutlined />}
-                onClick={() => navigate(editUrl(item) + '?tab=versions')}
-                disabled={!canEdit}
-              >
-                版本历史
-              </Button>
-              <Button
-                type="link"
-                size="small"
                 icon={<CloudServerOutlined />}
-                onClick={() => navigate(backupUrl(item))}
+                onClick={() => {
+                  if (!canBackup) {
+                    message.error('无创建备份权限');
+                    return;
+                  }
+                  navigate(backupUrl(item));
+                }}
                 disabled={!canBackup}
               >
                 备份
@@ -340,13 +525,39 @@ const ResourceList: React.FC = () => {
       deleteResource,
       handleReload,
       navigate,
-      canEdit,
+      canView,
+      canUpdate,
       canDelete,
       canBackup,
     ],
   );
 
   const emptyCluster = !clusterCode;
+
+  const handleEditorBeforeMount = useCallback(
+    (monaco: typeof import('monaco-editor')) => {
+      (monaco.languages as unknown as {
+        yaml?: {
+          yamlDefaults?: {
+            setDiagnosticsOptions?: (opts: { validate: boolean; enableSchemaRequest: boolean; hover: boolean; completion: boolean; schemas: unknown[] }) => void;
+          };
+        };
+      }).yaml?.yamlDefaults?.setDiagnosticsOptions?.({
+        validate: true,
+        enableSchemaRequest: false,
+        hover: true,
+        completion: true,
+        schemas: [],
+      });
+      monaco.editor.defineTheme('kube-create-yaml', {
+        base: 'vs',
+        inherit: true,
+        rules: [],
+        colors: {},
+      });
+    },
+    [],
+  );
 
   return (
     <PageContainer>
@@ -357,7 +568,8 @@ const ResourceList: React.FC = () => {
             const newTab = k as ResourceTab;
             const group = KIND_GROUPS.find((g) => g.key === newTab);
             setTab(newTab);
-            setKind(group?.kinds[0].value || KIND_GROUPS[0].kinds[0].value);
+            const firstKind = group?.kinds[0];
+            setKind(firstKind?.value || KIND_GROUPS[0].kinds[0].value);
             setPage(1);
           }}
           items={KIND_GROUPS.map((g) => ({ key: g.key, label: g.label }))}
@@ -367,13 +579,14 @@ const ResourceList: React.FC = () => {
           <Select
             style={{ width: 200 }}
             placeholder="命名空间"
-            value={namespace}
+            value={isClusterScoped ? CLUSTER_SCOPED_NS : namespace}
+            disabled={isClusterScoped}
             onChange={(v) => {
               setNamespace(v);
               setPage(1);
             }}
             options={namespaceOptions}
-            allowClear
+            allowClear={!isClusterScoped}
           />
           <Radio.Group
             value={kind}
@@ -402,6 +615,14 @@ const ResourceList: React.FC = () => {
           <Button icon={<ReloadOutlined />} onClick={handleReload}>
             刷新
           </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreateDrawer}
+            disabled={emptyCluster || !canCreate}
+          >
+            创建 {kind}
+          </Button>
         </Space>
 
         <ProTable<KubernetesResource>
@@ -409,6 +630,7 @@ const ResourceList: React.FC = () => {
             <Space>
               <SaveOutlined />
               <span>{currentGroup.label} / {kind}</span>
+              {isClusterScoped && <Tag color="orange">集群级</Tag>}
               {clusterCode && (
                 <Tag color="blue">集群: {clusterCode}</Tag>
               )}
@@ -433,7 +655,7 @@ const ResourceList: React.FC = () => {
               setSize(s);
             },
           }}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1300 }}
           options={{
             reload: handleReload,
             density: true,
@@ -445,6 +667,58 @@ const ResourceList: React.FC = () => {
           }}
         />
       </Space>
+
+      <Drawer
+        title={
+          <Space>
+            <PlusOutlined />
+            <span>创建 {kind}</span>
+            {clusterCode && <Tag color="blue">集群: {clusterCode}</Tag>}
+            {!isClusterScoped && namespace && <Tag>ns: {namespace}</Tag>}
+          </Space>
+        }
+        width={900}
+        open={createDrawerOpen}
+        onClose={() => setCreateDrawerOpen(false)}
+        destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setCreateDrawerOpen(false)}>取消</Button>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={createLoading}
+              onClick={handleCreateConfirm}
+            >
+              提交创建
+            </Button>
+          </Space>
+        }
+      >
+        <div style={{ height: 'calc(100vh - 220px)', minHeight: 500 }}>
+          <Editor
+            height="100%"
+            defaultLanguage="yaml"
+            language="yaml"
+            theme="kube-create-yaml"
+            value={createYaml}
+            onChange={(v) => setCreateYaml(v || '')}
+            onMount={(ed) => (editorMountRef.current = ed)}
+            beforeMount={handleEditorBeforeMount}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 13,
+              lineNumbers: 'on',
+              automaticLayout: true,
+              scrollBeyondLastLine: false,
+              renderWhitespace: 'boundary',
+              tabSize: 2,
+              insertSpaces: true,
+              wordWrap: 'on',
+            }}
+          />
+        </div>
+      </Drawer>
     </PageContainer>
   );
 };

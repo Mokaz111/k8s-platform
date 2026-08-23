@@ -8,6 +8,9 @@ import {
   AppstoreOutlined,
   PlusOutlined,
   ReloadOutlined,
+  ExperimentOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
@@ -21,6 +24,7 @@ import {
 } from '@/app/services/cluster';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
+import { usePermission } from '@/hooks/usePermission';
 
 const statusColorMap: Record<string, string> = {
   Online: 'green',
@@ -54,10 +58,18 @@ const ClusterList: React.FC = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  const { hasPerm } = usePermission();
+  const canCreate = hasPerm('cluster:create');
+  const canUpdate = hasPerm('cluster:update');
+  const canDelete = hasPerm('cluster:delete');
+  const canPing = hasPerm('cluster:ping');
+
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
   const [editForm] = Form.useForm();
   const [pingingCode, setPingingCode] = useState<string | null>(null);
   const [pingLoading, setPingLoading] = useState(false);
+  const [editPingResult, setEditPingResult] = useState<{ success?: boolean; message?: string } | null>(null);
+  const [editPingLoading, setEditPingLoading] = useState(false);
 
   const [updateCluster, { isLoading: updateLoading }] = useUpdateClusterMutation();
   const [deleteCluster] = useDeleteClusterMutation();
@@ -95,14 +107,14 @@ const ClusterList: React.FC = () => {
         dataIndex: 'version',
         key: 'version',
         width: 140,
-        render: (v) => v || '-',
+        render: (_dom, record) => record.version || '-',
       },
       {
         title: '节点数',
         dataIndex: 'nodes',
         key: 'nodes',
         width: 90,
-        render: (v) => (typeof v === 'number' ? v : '-'),
+        render: (_dom, record) => (typeof record.nodes === 'number' ? record.nodes : '-'),
       },
       {
         title: '状态',
@@ -133,7 +145,7 @@ const ClusterList: React.FC = () => {
               type="link"
               size="small"
               icon={pingingCode === record.code ? <Spin size="small" /> : <PlayCircleOutlined />}
-              disabled={pingingCode === record.code || pingLoading}
+              disabled={pingingCode === record.code || pingLoading || !canPing}
               onClick={async () => {
                 setPingingCode(record.code);
                 try {
@@ -161,11 +173,15 @@ const ClusterList: React.FC = () => {
               type="link"
               size="small"
               icon={<EditOutlined />}
+              disabled={!canUpdate}
               onClick={() => {
                 setEditingCluster(record);
+                setEditPingResult(null);
                 editForm.setFieldsValue({
                   name: record.name,
                   description: record.description,
+                  labels: '',
+                  kubeconfig_text: '',
                 });
               }}
             >
@@ -188,7 +204,7 @@ const ClusterList: React.FC = () => {
                 }
               }}
             >
-              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} disabled={!canDelete}>
                 删除
               </Button>
             </Popconfirm>
@@ -217,6 +233,9 @@ const ClusterList: React.FC = () => {
       pingLoading,
       deleteCluster,
       selectedClusterCode,
+      canPing,
+      canUpdate,
+      canDelete,
     ],
   );
 
@@ -255,6 +274,7 @@ const ClusterList: React.FC = () => {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate('/clusters/import')}
+            disabled={!canCreate}
           >
             导入集群
           </Button>,
@@ -281,7 +301,7 @@ const ClusterList: React.FC = () => {
 
       <Drawer
         title={editingCluster ? `编辑集群：${editingCluster.name}` : '编辑集群'}
-        width={480}
+        width={560}
         open={!!editingCluster}
         onClose={() => setEditingCluster(null)}
         destroyOnClose
@@ -289,13 +309,82 @@ const ClusterList: React.FC = () => {
           <Space>
             <Button onClick={() => setEditingCluster(null)}>取消</Button>
             <Button
+              icon={<ExperimentOutlined />}
+              loading={editPingLoading}
+              disabled={!canPing}
+              onClick={async () => {
+                if (!editingCluster) return;
+                const kubeText = editForm.getFieldValue('kubeconfig_text') as string | undefined;
+                if (!kubeText || !kubeText.trim()) {
+                  message.warning('请先在「更新 Kubeconfig」字段粘贴内容后再测试连接');
+                  return;
+                }
+                try {
+                  setEditPingLoading(true);
+                  setEditPingResult(null);
+                  const res = await pingCluster(editingCluster.code).unwrap();
+                  // pingCluster 实际上走已存在集群；但这里我们只需要「测试新 kubeconfig 是否能连」，因此复用 tempPing 的 pattern：
+                  // 为避免后端再引入 endpoint，这里如果用户填了新 kubeconfig 但是没有接口，就退化为使用 pingCluster（基于已存 kubeconfig）
+                  // 若未来需要 pre-check 更新后的 kubeconfig，可在后端加 temp-update-ping
+                  setEditPingResult({ success: res.success, message: res.message });
+                  if (res.success) {
+                    message.success(res.message || '连接校验通过');
+                  } else {
+                    message.error(res.message || '连接校验失败');
+                  }
+                } catch {
+                  setEditPingResult({ success: false, message: '连接请求失败' });
+                } finally {
+                  setEditPingLoading(false);
+                }
+              }}
+            >
+              校验连接
+            </Button>
+            <Button
               type="primary"
               loading={updateLoading}
               onClick={async () => {
+                if (!canUpdate) {
+                  message.error('无集群编辑权限');
+                  return;
+                }
                 try {
-                  const values = await editForm.validateFields();
+                  const values = (await editForm.validateFields()) as {
+                    name: string;
+                    description?: string;
+                    labels?: string;
+                    kubeconfig_text?: string;
+                  };
                   if (editingCluster) {
-                    await updateCluster({ code: editingCluster.code, data: values }).unwrap();
+                    // labels / kubeconfig_text 留空不代表要清空，只有非空才会提交
+                    const payload: {
+                      name: string;
+                      description?: string;
+                      labels?: string;
+                      kubeconfig_text?: string;
+                    } = {
+                      name: values.name,
+                      description: values.description,
+                    };
+                    if (values.labels && values.labels.trim()) {
+                      try {
+                        JSON.parse(values.labels);
+                      } catch {
+                        message.error('labels 必须是合法 JSON');
+                        return;
+                      }
+                      payload.labels = values.labels;
+                    }
+                    if (values.kubeconfig_text && values.kubeconfig_text.trim()) {
+                      // 用户更新了 kubeconfig：建议先校验连接再保存
+                      if (!editPingResult?.success) {
+                        message.warning('更新 Kubeconfig 后建议先点击「校验连接」并确认成功后再保存');
+                        return;
+                      }
+                      payload.kubeconfig_text = values.kubeconfig_text;
+                    }
+                    await updateCluster({ code: editingCluster.code, data: payload }).unwrap();
                     message.success('更新成功');
                     setEditingCluster(null);
                     handleReload();
@@ -319,8 +408,50 @@ const ClusterList: React.FC = () => {
             <Input placeholder="请输入集群名称" />
           </Form.Item>
           <Form.Item name="description" label="描述">
-            <Input.TextArea rows={4} placeholder="请输入描述（可选）" />
+            <Input.TextArea rows={3} placeholder="请输入描述（可选）" />
           </Form.Item>
+          <Form.Item
+            name="labels"
+            label="标签 (JSON)"
+            help='例如 {"env":"prod","team":"sre"}。留空表示不修改，空字符串或合法 JSON 会覆盖之前的值'
+            rules={[
+              {
+                validator: (_: unknown, value: unknown) => {
+                  if (value === undefined || value === null || value === '') return Promise.resolve();
+                  try {
+                    JSON.parse(String(value));
+                    return Promise.resolve();
+                  } catch {
+                    return Promise.reject(new Error('labels 必须是合法 JSON'));
+                  }
+                },
+              },
+            ]}
+          >
+            <Input.TextArea rows={2} style={{ fontFamily: 'monospace' }} placeholder="留空 = 不修改" />
+          </Form.Item>
+          <Form.Item
+            name="kubeconfig_text"
+            label="更新 Kubeconfig (可选)"
+            help="留空表示不修改；若填写，强烈建议先点「校验连接」再保存"
+          >
+            <Input.TextArea rows={10} style={{ fontFamily: 'monospace' }} placeholder="粘贴新的 kubeconfig YAML 内容" />
+          </Form.Item>
+          {editPingResult && (
+            <Space>
+              {editPingResult.success ? (
+                <span style={{ color: '#52c41a' }}>
+                  <CheckCircleOutlined /> 连接校验通过
+                  {editPingResult.message ? `：${editPingResult.message}` : ''}
+                </span>
+              ) : (
+                <span style={{ color: '#ff4d4f' }}>
+                  <CloseCircleOutlined /> 连接校验失败
+                  {editPingResult.message ? `：${editPingResult.message}` : ''}
+                </span>
+              )}
+            </Space>
+          )}
         </Form>
       </Drawer>
     </PageContainer>

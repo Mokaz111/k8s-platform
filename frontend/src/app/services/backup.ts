@@ -1,5 +1,7 @@
+import React from 'react';
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './axiosBaseQuery';
+import { download as downloadFile } from './request';
 
 export type StorageType = 'Local' | 'S3' | 'NFS';
 export type BackupStatus = 'Running' | 'Success' | 'Failed' | 'Pending';
@@ -136,3 +138,42 @@ export const {
   useRestoreBackupMutation,
   useDeleteBackupMutation,
 } = backupApi;
+
+// ============== downloadBackup: 基于 axios blob 的 hook ===========================
+export interface DownloadBackupArgs {
+  id: string;
+  filename?: string;
+}
+
+export const useDownloadBackup = () => {
+  const [loading, setLoading] = React.useState(false);
+
+  const trigger = React.useCallback(
+    async ({ id, filename }: DownloadBackupArgs): Promise<void> => {
+      setLoading(true);
+      try {
+        const url = `/backups/${id}/download`;
+        const dlName = filename || `backup-${id}.yaml`;
+        await downloadFile(url, dlName);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return [trigger, loading] as const;
+};
+
+// 非 hook 版本，用于按钮直接调用
+export const downloadBackupById = async (record: Backup): Promise<void> => {
+  const isBatch =
+    record.mode === 'namespace_batch' ||
+    (record.namespaces && record.namespaces.length > 1) ||
+    (record.kindFilter && record.kindFilter.length > 1);
+  const ext = isBatch ? 'tar.gz' : 'yaml';
+  const namePart = record.name || (isBatch ? 'batch' : record.kind) || record.id;
+  const filename = `backup-${record.code}-${namePart}-${record.id.slice(0, 8)}.${ext}`;
+  const url = record.downloadUrl || `/backups/${record.id}/download`;
+  await downloadFile(url, filename);
+};

@@ -43,7 +43,7 @@ interface CreateFormValues {
   storageType: 'Local' | 'S3' | 'NFS';
 }
 
-const COMMON_KINDS = [
+const COMMON_KINDS: { apiVersion: string; kind: string; clusterScoped?: boolean }[] = [
   { apiVersion: 'apps/v1', kind: 'Deployment' },
   { apiVersion: 'apps/v1', kind: 'StatefulSet' },
   { apiVersion: 'apps/v1', kind: 'DaemonSet' },
@@ -52,11 +52,19 @@ const COMMON_KINDS = [
   { apiVersion: 'v1', kind: 'ConfigMap' },
   { apiVersion: 'v1', kind: 'Secret' },
   { apiVersion: 'v1', kind: 'Service' },
-  { apiVersion: 'v1', kind: 'PersistentVolume' },
+  { apiVersion: 'v1', kind: 'Namespace', clusterScoped: true },
+  { apiVersion: 'v1', kind: 'PersistentVolume', clusterScoped: true },
   { apiVersion: 'v1', kind: 'PersistentVolumeClaim' },
-  { apiVersion: 'storage.k8s.io/v1', kind: 'StorageClass' },
+  { apiVersion: 'storage.k8s.io/v1', kind: 'StorageClass', clusterScoped: true },
+  { apiVersion: 'storage.k8s.io/v1', kind: 'VolumeAttachment', clusterScoped: true },
   { apiVersion: 'networking.k8s.io/v1', kind: 'Ingress' },
+  { apiVersion: 'networking.k8s.io/v1', kind: 'NetworkPolicy' },
 ];
+
+const CLUSTER_SCOPED_KINDS = new Set(
+  COMMON_KINDS.filter((k) => k.clusterScoped).map((k) => k.kind),
+);
+const isClusterScopedKind = (kind?: string): boolean => !!kind && CLUSTER_SCOPED_KINDS.has(kind);
 
 const BackupCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -276,20 +284,16 @@ const BackupCreate: React.FC = () => {
             </Form.Item>
           )}
 
-          {/* 命名空间级 / 单对象：单选命名空间 */}
-          {(scopeValue === 'object' || scopeValue === 'namespace') && (
+          {/* 命名空间级：单选命名空间 */}
+          {scopeValue === 'namespace' && (
             <ProFormSelect
               name="namespace"
               label="命名空间"
-              placeholder={
-                scopeValue === 'namespace'
-                  ? '请选择命名空间'
-                  : '集群级资源可不填；命名空间级必填'
-              }
-              disabled={!codeValue}
+              placeholder="请选择命名空间"
+              disabled={!codeValue || isClusterScopedKind(kindValue)}
               options={namespaceOptions}
               rules={
-                scopeValue === 'namespace'
+                !isClusterScopedKind(kindValue)
                   ? [{ required: true, message: '命名空间级模式请选择命名空间' }]
                   : []
               }
@@ -298,6 +302,28 @@ const BackupCreate: React.FC = () => {
                 showSearch: true,
               }}
             />
+          )}
+
+          {/* 单对象模式：仅非集群级资源才展示命名空间选择 */}
+          {scopeValue === 'object' && !isClusterScopedKind(kindValue) && (
+            <ProFormSelect
+              name="namespace"
+              label="命名空间"
+              placeholder="集群级资源可不填；命名空间资源建议填写"
+              disabled={!codeValue}
+              options={namespaceOptions}
+              fieldProps={{
+                allowClear: true,
+                showSearch: true,
+              }}
+            />
+          )}
+
+          {/* 单对象模式：提示当前选择的是集群级资源 */}
+          {scopeValue === 'object' && isClusterScopedKind(kindValue) && (
+            <div style={{ color: 'rgba(0,0,0,0.5)', marginBottom: 16 }}>
+              当前选择的 Kind「{kindValue}」为集群级资源，无需指定 Namespace。
+            </div>
           )}
 
           {/* 命名空间批量：多选资源类型 */}

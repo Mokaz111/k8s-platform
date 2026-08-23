@@ -21,6 +21,8 @@ export interface ListVersionsParams {
   kind: string;
   namespace?: string;
   name: string;
+  page?: number;
+  size?: number;
 }
 
 export interface ListVersionsResponse {
@@ -30,7 +32,8 @@ export interface ListVersionsResponse {
 
 export interface GetVersionDiffParams {
   code: string;
-  gvk: string;
+  apiVersion: string;
+  kind: string;
   namespace?: string;
   name: string;
   seqA: number;
@@ -47,7 +50,8 @@ export interface VersionDiffResponse {
 
 export interface RollbackVersionParams {
   code: string;
-  gvk: string;
+  apiVersion: string;
+  kind: string;
   namespace?: string;
   name: string;
   seq: number;
@@ -65,30 +69,39 @@ export const versionApi = createApi({
   tagTypes: ['Version'],
   endpoints: (builder) => ({
     listVersions: builder.query<ListVersionsResponse, ListVersionsParams>({
-      query: ({ code, apiVersion, kind, namespace, name }) => ({
-        url: namespace
-          ? `/clusters/${code}/versions/${apiVersion}/${kind}/${namespace}/${name}`
-          : `/clusters/${code}/versions/${apiVersion}/${kind}/${name}`,
+      query: ({ code, apiVersion, kind, namespace, name, page, size }) => ({
+        url: `/clusters/${code}/versions`,
         method: 'GET',
+        params: {
+          apiVersion,
+          kind,
+          namespace,
+          name,
+          page,
+          size,
+        } as Record<string, unknown>,
       }),
       providesTags: [{ type: 'Version', id: 'LIST' }],
     }),
     getVersionDiff: builder.query<VersionDiffResponse, GetVersionDiffParams>({
-      query: ({ code, gvk, namespace, name, seqA, seqB }) => ({
-        url: namespace
-          ? `/clusters/${code}/versions/diff/${gvk}/${namespace}/${name}`
-          : `/clusters/${code}/versions/diff/${gvk}/${name}`,
+      query: ({ code, apiVersion, kind, namespace, name, seqA, seqB }) => ({
+        url: `/clusters/${code}/versions/diff`,
         method: 'GET',
-        params: { seqA, seqB } as Record<string, unknown>,
+        params: {
+          apiVersion,
+          kind,
+          namespace,
+          name,
+          seqA,
+          seqB,
+        } as Record<string, unknown>,
       }),
     }),
     rollbackVersion: builder.mutation<RollbackResponse, RollbackVersionParams>({
-      query: ({ code, gvk, namespace, name, seq }) => ({
-        url: namespace
-          ? `/clusters/${code}/versions/rollback/${gvk}/${namespace}/${name}`
-          : `/clusters/${code}/versions/rollback/${gvk}/${name}`,
+      query: ({ code, apiVersion, kind, namespace, name, seq }) => ({
+        url: `/clusters/${code}/versions/rollback`,
         method: 'POST',
-        data: { seq },
+        data: { apiVersion, kind, namespace, name, seq },
       }),
       invalidatesTags: [{ type: 'Version', id: 'LIST' }],
     }),
