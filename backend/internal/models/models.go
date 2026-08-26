@@ -79,7 +79,7 @@ type ResourceSnapshot struct {
 	Kind          string     `gorm:"column:kind;type:varchar(64);not null;index:idx_cluster_kind_name;index:idx_version_seq" json:"kind"`
 	Name          string     `gorm:"column:name;type:varchar(256);not null;index:idx_cluster_kind_name;index:idx_version_seq" json:"name"`
 	VersionSeq    int        `gorm:"column:version_seq;not null;index:idx_version_seq" json:"version_seq"`
-	RawYAML       string     `gorm:"column:raw_yaml;type:mediumtext;not null" json:"raw_yaml"`
+	RawYAML       string     `gorm:"column:raw_yaml;type:text;not null" json:"raw_yaml"`
 	ChangeSummary string     `gorm:"column:change_summary;type:varchar(512)" json:"change_summary,omitempty"`
 	Operator      string     `gorm:"column:operator;type:varchar(64);not null" json:"operator"`
 	Source        string     `gorm:"column:source;type:varchar(32);not null;default:'ui'" json:"source"` // ui / rollback / backup
