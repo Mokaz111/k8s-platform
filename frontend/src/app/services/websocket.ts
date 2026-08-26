@@ -13,12 +13,15 @@ import {
   WSConnectionStatus,
 } from '@/slices/wsSlice';
 
+const VITE_WS = import.meta.env.VITE_WS_BASE_URL as string | undefined;
+const VITE_API = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const WS_BASE_URL =
-  import.meta.env.VITE_WS_BASE_URL ||
-  // 自动从 VITE_API_BASE_URL 推导：/api/v1 -> /api/v1/ws，默认 ws://localhost:8080/api/v1/ws
-  (import.meta.env.VITE_API_BASE_URL
-    ? `${import.meta.env.VITE_API_BASE_URL.replace(/^http/, 'ws')}/ws`
-    : `ws://${window.location.hostname}:8080/api/v1/ws`);
+  (VITE_WS && VITE_WS.length > 0)
+    ? VITE_WS
+    : (VITE_API && VITE_API.length > 0)
+      ? `${VITE_API.replace(/^http/, 'ws')}/ws`
+      // 开发模式下默认同源：经 Vite proxy（ws:true）转发到后端 8080，避免跨域与直连问题
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/ws`;
 
 // 模块级单例：整个 SPA 共享一个 WebSocket 连接
 let instance: WebSocketClient | null = null;

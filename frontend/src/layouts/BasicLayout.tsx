@@ -16,6 +16,7 @@ import {
   SafetyOutlined,
   TeamOutlined,
   AuditOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { logout } from '@/slices/userSlice';
@@ -36,6 +37,7 @@ const MENU_PERM_MAP: Record<string, string[]> = {
   // 资源管理
   '/resources': ['resource:view', 'resource:edit', 'resource:delete'],
   '/resources/list': ['resource:view'],
+  '/resources/quota': ['resource:view'],
   // 备份管理
   '/backups': ['backup:view', 'backup:create', 'backup:restore', 'backup:download', 'backup:delete'],
   '/backups/list': ['backup:view'],
@@ -50,6 +52,9 @@ const MENU_PERM_MAP: Record<string, string[]> = {
   // 审计日志
   '/audit': ['audit:view'],
   '/audit/list': ['audit:view'],
+  // Helm 应用管理
+  '/helm': ['helm:view', 'helm:install', 'helm:uninstall', 'helm:rollback'],
+  '/helm/list': ['helm:view'],
 };
 
 type MenuRoute = {
@@ -182,6 +187,11 @@ const BasicLayout: React.FC = () => {
                 name: '资源列表',
                 icon: <AppstoreOutlined />,
               },
+              {
+                path: '/resources/quota',
+                name: '配额管理',
+                icon: <DashboardOutlined />,
+              },
             ],
           },
           {
@@ -239,6 +249,18 @@ const BasicLayout: React.FC = () => {
                 path: '/audit/list',
                 name: '操作日志',
                 icon: <AuditOutlined />,
+              },
+            ],
+          },
+          {
+            path: '/helm',
+            name: 'Helm 应用',
+            icon: <ThunderboltOutlined />,
+            routes: [
+              {
+                path: '/helm/list',
+                name: 'Release 列表',
+                icon: <ThunderboltOutlined />,
               },
             ],
           },

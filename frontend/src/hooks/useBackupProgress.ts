@@ -1,95 +1,73 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { useAppSelector, useAppDispatch } from '@/app/store';
-import { subscribeChannel, unsubscribeChannel } from '@/app/services/websocket';
-import {
-  selectTaskProgress,
-  TaskProgressPayload,
-  WS_TYPE_TASK_PROGRESS,
-  clearTaskProgress,
-} from '@/slices/wsSlice';
+import { useEffect, useMemo } from 'react';
+import { useAppDispatch } from '@/app/store';
+import { clearTaskProgress, TaskProgressPayload } from '@/slices/wsSlice';
+import { useSubscribeTaskProgress } from './useSubscribeTaskProgress';
+
+export interface UseBackupProgressOptions {
+  /** 按集群 code 过滤进度事件；undefined = 不过滤 */
+  clusterCode?: string;
+  /** 组件挂载时先清空历史进度环形缓冲，默认 false */
+  clearOnMount?: boolean;
+  /** 只追踪特定 backup_id / task_id 的进度 */
+  backupId?: string | number;
+  /**
+   * 聚合策略：
+   * - 'per-stage'（默认）：返回按 task_id 去重后的所有阶段事件（按时间升序，便于 Timeline）
+   * - 'latest-per-task'：按 task_id 分组取最新一条（任务墙式展示）
+   */
+  mode?: 'per-stage' | 'latest-per-task';
+}
 
 /**
- * useBackupProgress - 订阅备份/恢复任务进度通道
+ * useBackupProgress — 面向备份/恢复场景的进度聚合 hook。
  *
- * 后端推送 channel: "task_progress"
- * 后端推送 type: "task_progress"
- *
- * 可选按 backupId / clusterCode 过滤
+ * 在 useSubscribeTaskProgress 基础上额外提供：
+ *  - clusterCode / backupId 过滤
+ *  - 按 task 聚合最新事件
+ *  - clearOnMount 控制首次进入是否清空历史
  */
-export interface UseBackupProgressOptions {
-  backupId?: string;
-  clusterCode?: string;
-  // 是否自动清除旧消息（首次挂载时），默认 true
-  clearOnMount?: boolean;
-  enabled?: boolean;
-}
-
-export interface UseBackupProgressResult {
+export function useBackupProgress(options: UseBackupProgressOptions = {}): {
   list: TaskProgressPayload[];
-  latest?: TaskProgressPayload;
-  latestByTask: Record<string, TaskProgressPayload>;
-  // 一条特定 backup 的最新进度（仅当 backupId 传入时有效）
-  latestByBackup: Record<string, TaskProgressPayload>;
-}
-
-export function useBackupProgress(
-  opts: UseBackupProgressOptions = {},
-): UseBackupProgressResult {
+  /** key 为 task_id，value 为该任务最新事件 */
+  byTaskId: Record<string, TaskProgressPayload>;
+} {
+  const { clusterCode, clearOnMount = false, backupId, mode = 'per-stage' } = options;
   const dispatch = useAppDispatch();
-  const { backupId, clusterCode, clearOnMount = true, enabled = true } = opts;
-  const mountedRef = useRef(false);
+  const { all } = useSubscribeTaskProgress(backupId);
 
   useEffect(() => {
-    if (!enabled) return;
-    mountedRef.current = true;
-    if (clearOnMount) dispatch(clearTaskProgress());
-    subscribeChannel(WS_TYPE_TASK_PROGRESS);
-    return () => {
-      unsubscribeChannel(WS_TYPE_TASK_PROGRESS);
-      mountedRef.current = false;
-    };
-  }, [enabled, clearOnMount, dispatch]);
-
-  const all = useAppSelector(selectTaskProgress);
+    if (clearOnMount) {
+      dispatch(clearTaskProgress());
+    }
+  }, [clearOnMount, dispatch]);
 
   const filtered = useMemo(() => {
-    return all.filter((p) => {
-      if (backupId && p.backup_id !== backupId) return false;
-      if (clusterCode && p.cluster_code !== clusterCode) return false;
-      return true;
+    if (!clusterCode) return all;
+    return all.filter((p) => !p.cluster_code || p.cluster_code === clusterCode);
+  }, [all, clusterCode]);
+
+  const byTaskId = useMemo(() => {
+    const map: Record<string, TaskProgressPayload> = {};
+    filtered.forEach((p) => {
+      const id = String(p.task_id ?? p.backup_id);
+      if (!id) return;
+      // 后出现覆盖先出现（ws taskProgress 环形缓冲按入队顺序，后面 = 更新）
+      map[id] = p;
     });
-  }, [all, backupId, clusterCode]);
-
-  const latestByTask = useMemo(() => {
-    const map: Record<string, TaskProgressPayload> = {};
-    for (const p of filtered) {
-      const id = p.task_id;
-      if (!id) continue;
-      const prev = map[id];
-      if (!prev || (p.timestamp || '') > (prev.timestamp || '')) {
-        map[id] = p;
-      }
-    }
     return map;
   }, [filtered]);
 
-  const latestByBackup = useMemo(() => {
-    const map: Record<string, TaskProgressPayload> = {};
-    for (const p of filtered) {
-      const id = p.backup_id;
-      if (!id) continue;
-      const prev = map[id];
-      if (!prev || (p.timestamp || '') > (prev.timestamp || '')) {
-        map[id] = p;
-      }
+  const list = useMemo(() => {
+    if (mode === 'latest-per-task') {
+      return Object.values(byTaskId).sort((a, b) =>
+        (a.timestamp || '').localeCompare(b.timestamp || ''),
+      );
     }
-    return map;
-  }, [filtered]);
+    // per-stage：原始时间升序
+    return [...filtered].sort((a, b) =>
+      (a.timestamp || '').localeCompare(b.timestamp || ''),
+    );
+  }, [mode, byTaskId, filtered]);
 
-  return {
-    list: filtered,
-    latest: filtered[filtered.length - 1],
-    latestByTask,
-    latestByBackup,
-  };
+  return { list, byTaskId };
 }

@@ -355,6 +355,17 @@ func (m *Manager) invalidateClient(clusterCode string) {
 	delete(m.clients, clusterCode)
 }
 
+// GetRestConfig returns the REST config for a cluster (used by Helm manager, etc.)
+func (m *Manager) GetRestConfig(clusterCode string) (*rest.Config, error) {
+	cfg, _, err := m.decryptAndBuildConfig(clusterCode)
+	return cfg, err
+}
+
+// GetKubeConfig returns the raw kubeconfig YAML bytes for a cluster
+func (m *Manager) GetKubeConfig(clusterCode string) (*rest.Config, []byte, error) {
+	return m.decryptAndBuildConfig(clusterCode)
+}
+
 func (m *Manager) decryptAndBuildConfig(clusterCode string) (*rest.Config, []byte, error) {
 	var c models.Cluster
 	if err := m.DB.Select("code", "kubeconfig", "creator_id").Where("code = ?", clusterCode).First(&c).Error; err != nil {

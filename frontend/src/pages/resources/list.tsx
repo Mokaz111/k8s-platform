@@ -16,6 +16,8 @@ import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import Editor, { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import {
+  CloudServerOutlined,
+  CodeOutlined,
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
@@ -23,7 +25,6 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
-  CloudServerOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -38,6 +39,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
+import { PodLogsViewer } from '@/components/ws';
 
 dayjs.extend(relativeTime);
 
@@ -199,6 +201,14 @@ const ResourceList: React.FC = () => {
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [createYaml, setCreateYaml] = useState<string>('');
   const editorMountRef = React.useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  // Pod 日志 Drawer
+  const [logDrawerOpen, setLogDrawerOpen] = useState(false);
+  const [currentPod, setCurrentPod] = useState<{
+    clusterCode: string;
+    namespace: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     const newCode = clusterCodeParam || selectedClusterCode;
@@ -414,12 +424,13 @@ const ResourceList: React.FC = () => {
       {
         title: '操作',
         key: 'actions',
-        width: 400,
+        width: 480,
         fixed: 'right',
         render: (_v, item) => {
           const ns = item.metadata?.namespace;
           const name = item.metadata?.name || '';
           const canViewItem = canView || canUpdate;
+          const isPod = item.kind === 'Pod';
           return (
             <Space size="small" wrap>
               <Button
@@ -467,6 +478,32 @@ const ResourceList: React.FC = () => {
               >
                 版本历史
               </Button>
+              {isPod && (
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<CodeOutlined />}
+                  onClick={() => {
+                    if (!canViewItem) {
+                      message.error('无查看资源权限');
+                      return;
+                    }
+                    if (!clusterCode) {
+                      message.warning('请先选择集群');
+                      return;
+                    }
+                    setCurrentPod({
+                      clusterCode: clusterCode,
+                      namespace: ns || '',
+                      name: name,
+                    });
+                    setLogDrawerOpen(true);
+                  }}
+                  disabled={!canViewItem}
+                >
+                  查看日志
+                </Button>
+              )}
               <Popconfirm
                 title={`确定删除 ${kind}「${name}」?`}
                 description="删除后该资源将从集群中移除"
@@ -718,6 +755,42 @@ const ResourceList: React.FC = () => {
             }}
           />
         </div>
+      </Drawer>
+
+      <Drawer
+        title={
+          <Space>
+            <CodeOutlined />
+            <span>Pod 日志</span>
+            {currentPod && (
+              <>
+                <Tag color="blue">集群: {currentPod.clusterCode}</Tag>
+                <Tag>ns: {currentPod.namespace}</Tag>
+                <Tag color="purple">Pod: {currentPod.name}</Tag>
+              </>
+            )}
+          </Space>
+        }
+        width={1100}
+        open={logDrawerOpen}
+        onClose={() => {
+          setLogDrawerOpen(false);
+          setCurrentPod(null);
+        }}
+        destroyOnClose
+      >
+        {currentPod && (
+          <PodLogsViewer
+            clusterCode={currentPod.clusterCode}
+            namespace={currentPod.namespace}
+            podName={currentPod.name}
+            height={Math.max(480, window.innerHeight - 220)}
+            autoScroll
+            autoTrigger
+            follow
+            tailLines={500}
+          />
+        )}
       </Drawer>
     </PageContainer>
   );

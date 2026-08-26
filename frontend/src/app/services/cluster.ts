@@ -52,6 +52,28 @@ export interface TempPingData {
   kubeconfig_text?: string;
 }
 
+export interface StreamPodLogsParams {
+  clusterCode: string;
+  namespace: string;
+  pod: string;
+  container?: string;
+  follow?: boolean;
+  tail?: number;
+}
+
+export interface StreamPodLogsResponse {
+  channel: string;
+  follow: boolean;
+  tail: number;
+  container: string;
+  pod: string;
+  namespace: string;
+  cluster: string;
+  ws_endpoint: string;
+  action: 'subscribe';
+  hint: string;
+}
+
 export const clusterApi = createApi({
   reducerPath: 'clusterApi',
   baseQuery: axiosBaseQuery(),
@@ -121,6 +143,19 @@ export const clusterApi = createApi({
         data,
       }),
     }),
+    streamPodLogs: builder.query<StreamPodLogsResponse, StreamPodLogsParams>({
+      query: ({ clusterCode, namespace, pod, container, follow, tail }) => {
+        const params: Record<string, unknown> = {};
+        if (container) params.container = container;
+        if (follow !== undefined) params.follow = follow ? '1' : '0';
+        if (tail !== undefined && tail > 0) params.tail = String(tail);
+        return {
+          url: `/clusters/${clusterCode}/pods/${namespace}/${pod}/logs`,
+          method: 'GET',
+          params,
+        };
+      },
+    }),
   }),
 });
 
@@ -132,4 +167,6 @@ export const {
   useDeleteClusterMutation,
   usePingClusterMutation,
   useTempPingMutation,
+  useStreamPodLogsQuery,
+  useLazyStreamPodLogsQuery,
 } = clusterApi;

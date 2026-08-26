@@ -7,12 +7,14 @@ import ClusterList from '@/pages/clusters/list';
 import ClusterImport from '@/pages/clusters/import';
 import ResourceList from '@/pages/resources/list';
 import ResourceEdit from '@/pages/resources/[code]/[apiVersion]/[kind]/[namespace]/[name]/edit';
+import QuotaManagement from '@/pages/resources/quota';
 import BackupList from '@/pages/backups/list';
 import BackupCreate from '@/pages/backups/create';
 import PodLogsPage from '@/pages/pods/logs';
 import AuditLogList from '@/pages/audit/list';
 import UserList from '@/pages/users/list';
 import RoleList from '@/pages/roles/list';
+import HelmList from '@/pages/helm/list';
 import { store } from '@/app/store';
 
 const authGuard = () => {
@@ -81,6 +83,10 @@ export const router = createBrowserRouter([
           {
             path: 'list',
             element: <ResourceList />,
+          },
+          {
+            path: 'quota',
+            element: <QuotaManagement />,
           },
           {
             path: 'workloads',
@@ -153,6 +159,19 @@ export const router = createBrowserRouter([
           {
             path: 'list',
             element: <AuditLogList />,
+          },
+        ],
+      },
+      {
+        path: 'helm',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/helm/list" replace />,
+          },
+          {
+            path: 'list',
+            element: <HelmList />,
           },
         ],
       },

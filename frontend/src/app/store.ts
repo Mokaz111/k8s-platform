@@ -8,6 +8,7 @@ import { resourceApi } from '@/app/services/resource';
 import { versionApi } from '@/app/services/version';
 import { backupApi } from '@/app/services/backup';
 import { rbacApi } from '@/app/services/rbac';
+import { helmApi } from '@/app/services/helm';
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
     [versionApi.reducerPath]: versionApi.reducer,
     [backupApi.reducerPath]: backupApi.reducer,
     [rbacApi.reducerPath]: rbacApi.reducer,
+    [helmApi.reducerPath]: helmApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -26,7 +28,8 @@ export const store = configureStore({
       .concat(resourceApi.middleware)
       .concat(versionApi.middleware)
       .concat(backupApi.middleware)
-      .concat(rbacApi.middleware),
+      .concat(rbacApi.middleware)
+      .concat(helmApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

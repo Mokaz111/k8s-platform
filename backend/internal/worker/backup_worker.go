@@ -35,6 +35,11 @@ const (
 	progressInterval    = 1 * time.Second
 )
 
+type activeTaskRecord struct {
+	task     *models.BackupTask
+	taskType string // backup | restore
+}
+
 type BackupWorker struct {
 	cfg     *config.Config
 	log     *logger.Logger
@@ -43,8 +48,9 @@ type BackupWorker struct {
 	plugins *plugins.Manager
 	cluster *cluster.Manager
 
-	stopCh chan struct{}
-	once   sync.Once
+	activeTasks sync.Map // uint64(taskID) -> *activeTaskRecord
+	stopCh      chan struct{}
+	once        sync.Once
 }
 
 func NewBackupWorker(cfg *config.Config, log *logger.Logger, db *gorm.DB, rdb *redis.Client, pm *plugins.Manager, cm *cluster.Manager) *BackupWorker {
@@ -208,6 +214,10 @@ func (w *BackupWorker) HandleTask(ctx context.Context, taskID uint64, taskType s
 		w.log.Warnf("mark running failed: %v", err)
 	}
 
+	// 记录活跃 task，便于 publishProgress 从 taskID 反查完整元信息
+	w.activeTasks.Store(taskID, &activeTaskRecord{task: &task, taskType: taskType})
+	defer w.activeTasks.Delete(taskID)
+
 	w.publishProgress(ctx, taskID, 5, string(models.BackupStatusRunning), "任务开始执行")
 
 	progressDone := make(chan struct{})
@@ -237,7 +247,7 @@ func (w *BackupWorker) HandleTask(ctx context.Context, taskID uint64, taskType s
 			"error_message": &errMsg,
 			"completed_at":  &finishNow,
 		})
-		w.publishProgress(ctx, taskID, 100, string(models.BackupStatusFailed), execErr.Error())
+		w.publishProgressWithError(ctx, taskID, 100, string(models.BackupStatusFailed), "任务失败", execErr.Error())
 		w.log.Errorf("❌ task %d (%s) failed: %v", taskID, taskType, execErr)
 		return nil
 	}
@@ -266,14 +276,94 @@ func (w *BackupWorker) publishProgressLoop(ctx context.Context, taskID uint64, d
 	}
 }
 
-func (w *BackupWorker) publishProgress(ctx context.Context, taskID uint64, percent int, status, msg string) {
-	payload := map[string]interface{}{
-		"task_id": taskID,
-		"percent": percent,
-		"status":  status,
-		"msg":     msg,
-		"ts":      time.Now().UnixMilli(),
+// taskProgressPayload 与前端 wsSlice TaskProgressPayload 字段完全对齐
+type taskProgressPayload struct {
+	TaskID      string `json:"task_id"`
+	BackupID    string `json:"backup_id,omitempty"`
+	ClusterCode string `json:"cluster_code,omitempty"`
+	Namespace   string `json:"namespace,omitempty"`
+	Kind        string `json:"kind,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Stage       string `json:"stage"` // pending | exporting | uploading | completed | failed | restoring
+	Progress    int    `json:"progress"`
+	Message     string `json:"message,omitempty"`
+	Error       string `json:"error,omitempty"`
+	Timestamp   string `json:"timestamp,omitempty"`
+}
+
+// resolveStage 把 status/percent/taskType 映射到前端约定的 stage 枚举
+func resolveStage(status string, percent int, taskType string) string {
+	switch status {
+	case string(models.BackupStatusPending):
+		return "pending"
+	case string(models.BackupStatusSuccess):
+		return "completed"
+	case string(models.BackupStatusFailed):
+		return "failed"
+	case "running":
+		// 兼容 running 状态，下面按 taskType + percent 细分
+		break
+	default:
+		// 未知状态透传兜底
+		return status
 	}
+	// running：根据 taskType + percent 细粒度划分
+	if taskType == "restore" {
+		return "restoring"
+	}
+	if percent < 50 {
+		return "exporting"
+	}
+	return "uploading"
+}
+
+func (w *BackupWorker) buildProgressPayload(taskID uint64, percent int, status string, msg string, errMsg string) *taskProgressPayload {
+	taskIDStr := strconv.FormatUint(taskID, 10)
+	p := &taskProgressPayload{
+		TaskID:    taskIDStr,
+		BackupID:  taskIDStr,
+		Stage:     "pending",
+		Progress:  percent,
+		Message:   msg,
+		Error:     errMsg,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}
+	taskType := "backup"
+	if v, ok := w.activeTasks.Load(taskID); ok {
+		if rec, ok := v.(*activeTaskRecord); ok && rec != nil {
+			taskType = rec.taskType
+			if rec.task != nil {
+				t := rec.task
+				p.ClusterCode = t.ClusterCode
+				if t.Namespace != nil {
+					p.Namespace = *t.Namespace
+				}
+				if t.TargetKind != nil {
+					p.Kind = *t.TargetKind
+				}
+				if t.TargetName != nil {
+					p.Name = *t.TargetName
+				}
+			}
+		}
+	}
+	p.Stage = resolveStage(status, percent, taskType)
+	return p
+}
+
+// publishProgress 发送进度事件到 Redis PubSub（字段对齐前端 TaskProgressPayload）
+func (w *BackupWorker) publishProgress(ctx context.Context, taskID uint64, percent int, status, msg string) {
+	payload := w.buildProgressPayload(taskID, percent, status, msg, "")
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	_ = w.redis.Publish(ctx, pubSubProgressChan, string(b)).Err()
+}
+
+// publishProgressWithError 发送带 error 字段的进度事件（用于任务失败场景）
+func (w *BackupWorker) publishProgressWithError(ctx context.Context, taskID uint64, percent int, status, msg string, errMsg string) {
+	payload := w.buildProgressPayload(taskID, percent, status, msg, errMsg)
 	b, err := json.Marshal(payload)
 	if err != nil {
 		return
@@ -463,7 +553,7 @@ func (w *BackupWorker) doBackupNamespaceBatch(ctx context.Context, task *models.
 		_ = w.db.Model(&models.BackupTask{}).Where("id = ?", task.ID).Updates(map[string]interface{}{
 			"error_message": &msg,
 		})
-		w.publishProgress(ctx, task.ID, 100, string(models.BackupStatusFailed), msg)
+		w.publishProgressWithError(ctx, task.ID, 100, string(models.BackupStatusFailed), "任务失败", msg)
 		return fmt.Errorf(msg)
 	}
 

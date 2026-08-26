@@ -41,6 +41,8 @@ import {
 import { useListClustersQuery } from '@/app/services/cluster';
 import { BackupProgressPanel } from '@/components/ws';
 import { usePermission } from '@/hooks/usePermission';
+import { useBackupProgress } from '@/hooks/useBackupProgress';
+import { Progress } from 'antd';
 
 const storageColorMap: Record<StorageType, string> = {
   Local: 'geekblue',
@@ -121,6 +123,13 @@ const BackupList: React.FC = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  // WebSocket 实时进度：按 task_id 分组取最新一条，用于表格行内进度覆盖
+  const { byTaskId } = useBackupProgress({
+    clusterCode: codeParam,
+    clearOnMount: false,
+    mode: 'latest-per-task',
+  });
+
   const [deleteBackup] = useDeleteBackupMutation();
   const [restoreBackup, { isLoading: restoreLoading }] = useRestoreBackupMutation();
 
@@ -136,6 +145,7 @@ const BackupList: React.FC = () => {
     restoreForm.setFieldsValue({
       targetCluster: record.code,
       targetNamespace: record.namespace,
+      mode: 'create-new',
     });
     setRestoreOpen(true);
   };
@@ -148,7 +158,11 @@ const BackupList: React.FC = () => {
         id: restoringRecord.id,
         body: values,
       }).unwrap();
-      message.success(res.message || '恢复任务已提交');
+      const target = values.targetCluster || restoringRecord.code;
+      const tip = res.taskId
+        ? `恢复任务 #${res.taskId} 已提交，切到集群 ${target} 查看进度`
+        : res.message || '恢复任务已提交';
+      message.success(tip);
       setRestoreOpen(false);
       handleReload();
     } catch {
@@ -208,6 +222,19 @@ const BackupList: React.FC = () => {
             )}
           </Space>
         ),
+      },
+      {
+        title: '类型',
+        key: 'taskType',
+        width: 100,
+        render: (_dom, record) => {
+          const isRestore = record.backupType === 'restore';
+          return (
+            <Tag color={isRestore ? 'orange' : 'blue'}>
+              {isRestore ? '恢复' : '备份'}
+            </Tag>
+          );
+        },
       },
       {
         title: '备份模式',
@@ -323,13 +350,81 @@ const BackupList: React.FC = () => {
         },
       },
       {
-        title: '状态',
+        title: '状态/进度',
         dataIndex: 'status',
         key: 'status',
-        width: 120,
-        render: (_dom, record) => (
-          <Tag color={statusColorMap[record.status]}>{statusLabelMap[record.status] || record.status}</Tag>
-        ),
+        width: 200,
+        render: (_dom, record) => {
+          const live = byTaskId[String(record.id)];
+          const liveStage = live?.stage;
+          const liveProgress = live?.progress ?? 0;
+          const liveMessage = live?.message;
+          const liveError = live?.error;
+
+          // 若 WS 有实时推送且非终态 → 用实时数据覆盖，附带进度条
+          const useLive =
+            !!live &&
+            liveStage !== 'completed' &&
+            liveStage !== 'failed';
+
+          if (useLive && liveStage) {
+            const stageColor: Record<string, string> = {
+              pending: 'warning',
+              exporting: 'processing',
+              uploading: 'purple',
+              restoring: 'orange',
+            };
+            const stageLabel: Record<string, string> = {
+              pending: '等待中',
+              exporting: '导出中',
+              uploading: '上传中',
+              restoring: '恢复中',
+            };
+            return (
+              <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                <Tag color={stageColor[liveStage] || 'processing'}>
+                  {stageLabel[liveStage] || liveStage}
+                </Tag>
+                <Progress
+                  percent={Math.min(100, Math.max(0, liveProgress))}
+                  size="small"
+                  status="active"
+                  showInfo
+                />
+                {liveMessage && (
+                  <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{liveMessage}</div>
+                )}
+                {liveError && <div style={{ fontSize: 12, color: '#ff4d4f' }}>{liveError}</div>}
+              </Space>
+            );
+          }
+
+          // 终态或无推送 → 回退到静态 status + 可能的最新 message（WS completed/failed 可能带详情）
+          const finalStage = liveStage === 'completed' || liveStage === 'failed' ? liveStage : undefined;
+          const finalLabel =
+            finalStage === 'completed'
+              ? '已完成'
+              : finalStage === 'failed'
+                ? '失败'
+                : statusLabelMap[record.status] || record.status;
+          const finalColor: string =
+            finalStage === 'completed'
+              ? 'success'
+              : finalStage === 'failed'
+                ? 'error'
+                : statusColorMap[record.status];
+          return (
+            <Space direction="vertical" size={2} style={{ width: '100%' }}>
+              <Tag color={finalColor}>{finalLabel}</Tag>
+              {live?.message && finalStage && (
+                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{live.message}</div>
+              )}
+              {live?.error && (
+                <div style={{ fontSize: 12, color: '#ff4d4f' }}>{live.error}</div>
+              )}
+            </Space>
+          );
+        },
       },
       {
         title: '操作',
@@ -407,7 +502,7 @@ const BackupList: React.FC = () => {
         },
       },
     ],
-    [deleteBackup, handleReload, navigate, canRestore, canDownload, canDelete],
+    [byTaskId, deleteBackup, handleReload, navigate, canRestore, canDownload, canDelete],
   );
 
   return (
@@ -567,6 +662,20 @@ const BackupList: React.FC = () => {
                 help="留空则使用备份时的命名空间；集群级资源无需填写"
               >
                 <Input placeholder="命名空间（可留空）" allowClear />
+              </Form.Item>
+              <Form.Item
+                label="恢复模式"
+                name="mode"
+                rules={[{ required: true, message: '请选择恢复模式' }]}
+                help="覆盖：更新已存在的同名资源（保留 resourceVersion）；新建：资源已存在时将报错"
+              >
+                <Select
+                  placeholder="请选择恢复模式"
+                  options={[
+                    { label: '新建（create-new）', value: 'create-new' },
+                    { label: '覆盖（overwrite）', value: 'overwrite' },
+                  ]}
+                />
               </Form.Item>
             </Form>
           </Space>

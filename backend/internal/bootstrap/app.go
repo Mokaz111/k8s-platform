@@ -13,6 +13,7 @@ import (
 	"github.com/k8s-platform/console/internal/backup"
 	"github.com/k8s-platform/console/internal/cluster"
 	"github.com/k8s-platform/console/internal/config"
+	"github.com/k8s-platform/console/internal/helm"
 	"github.com/k8s-platform/console/internal/models"
 	"github.com/k8s-platform/console/internal/plugins"
 	"github.com/k8s-platform/console/internal/resource"
@@ -52,6 +53,7 @@ type App struct {
 	VersionMgr  *version.Manager
 	BackupMgr   *backup.Manager
 	PluginMgr   *plugins.Manager
+	HelmMgr     *helm.Manager
 
 	// WebSocket Hub（设计文档 9.2 节三通道：Pod 日志流 / 任务进度推送 / 集群事件通知）
 	WSHub *ws.Hub
@@ -129,6 +131,10 @@ func NewApp(cfg *config.Config, log *logger.Logger, role AppRole) (*App, error) 
 	// 4.7 Backup Manager（Redis Stream 任务提交）
 	app.BackupMgr = backup.NewManager(db, rdb, app.PluginMgr, log)
 	log.Info("💾 Backup manager initialized")
+
+	// 4.8 Helm Manager（通过 k8s secrets 列表 + helm CLI 安装/卸载/回滚）
+	app.HelmMgr = helm.NewManager(app.ClusterMgr, log)
+	log.Info("⎈ Helm manager initialized")
 
 	// 4.8 WebSocket Hub（设计文档 9.2 节三通道：Pod 日志流 / 任务进度推送 / 集群事件通知）
 	// Hub 自身订阅 Redis PubSub 3 个 channel，故仅在 API Server 进程内启动（Worker 端 Hub 无客户端）
@@ -212,6 +218,10 @@ func (a *App) RegisterAPIRoutes() *gin.Engine {
 			// 备份管理
 			backupHandler := handler.NewBackupHandler(a.BackupMgr)
 			api.RegisterBackupRoutes(authorized, backupHandler)
+
+			// Helm 应用管理
+			helmHandler := &handler.HelmHandler{Mgr: a.HelmMgr}
+			api.RegisterHelmRoutes(authorized, helmHandler)
 		}
 
 		// ---- WebSocket 路由（设计文档 9.2 节三通道）----

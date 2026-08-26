@@ -19,6 +19,7 @@ export interface Backup {
   kindFilter?: string[];
   name: string;
   mode?: BackupMode;
+  backupType?: string; // single / namespace_batch / restore
   storageType: StorageType;
   size?: number;
   status: BackupStatus;
@@ -66,9 +67,12 @@ export interface CreateBackupParams {
   body: CreateBackupBody;
 }
 
+export type RestoreMode = 'overwrite' | 'create-new';
+
 export interface RestoreBackupBody {
   targetCluster?: string;
   targetNamespace?: string;
+  mode?: RestoreMode;
 }
 
 export interface RestoreParams {
