@@ -258,8 +258,8 @@ const ResourceEdit: React.FC = () => {
     })
       .unwrap()
       .then((res) => {
-        setDiffLeft(res.yamlA || '');
-        setDiffRight(res.yamlB || '');
+        setDiffLeft(res.yaml_a || '');
+        setDiffRight(res.yaml_b || '');
         setDiffLoaded(true);
       })
       .catch(() => {
@@ -285,7 +285,7 @@ const ResourceEdit: React.FC = () => {
             name,
             seq,
           }).unwrap();
-          message.success(res.message || '回滚成功');
+          message.success(res.rolled_back ? `已回滚到版本 #${res.seq}` : '回滚成功');
           await Promise.all([refetchResource(), refetchVersions()]);
         } catch {
           // interceptor
@@ -436,39 +436,30 @@ const ResourceEdit: React.FC = () => {
                               mode="left"
                               items={versionItems.map((v: ResourceVersion) => ({
                                 color:
-                                  v.operation === 'CREATE'
-                                    ? 'green'
-                                    : v.operation === 'UPDATE'
-                                      ? 'blue'
-                                      : v.operation === 'DELETE'
-                                        ? 'red'
-                                        : 'gray',
+                                  v.source === 'rollback'
+                                    ? 'orange'
+                                    : v.source === 'backup'
+                                      ? 'purple'
+                                      : 'blue',
                                 children: (
                                   <Card
                                     size="small"
                                     title={
                                       <Space>
                                         <Checkbox
-                                          checked={checkedSeqs.includes(v.seq)}
-                                          onChange={() => toggleSeq(v.seq)}
+                                          checked={checkedSeqs.includes(v.version_seq)}
+                                          onChange={() => toggleSeq(v.version_seq)}
                                         >
-                                          <strong># {v.seq}</strong>
+                                          <strong># {v.version_seq}</strong>
                                         </Checkbox>
-                                        <Tag>
-                                          {v.operation || 'UPDATE'}
-                                        </Tag>
-                                        {v.resourceVersion && (
-                                          <Tag color="purple">
-                                            rv: {v.resourceVersion}
-                                          </Tag>
-                                        )}
+                                        <Tag>{v.change_summary || v.source || 'snapshot'}</Tag>
                                       </Space>
                                     }
                                     extra={
                                       <Space>
                                         <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
-                                          {v.createdAt
-                                            ? dayjs(v.createdAt).format('YYYY-MM-DD HH:mm:ss')
+                                          {v.created_at
+                                            ? dayjs(v.created_at).format('YYYY-MM-DD HH:mm:ss')
                                             : ''}
                                         </span>
                                         <Button
@@ -476,7 +467,7 @@ const ResourceEdit: React.FC = () => {
                                           size="small"
                                           icon={<RollbackOutlined />}
                                           loading={rollbackLoading}
-                                          onClick={() => handleRollback(v.seq)}
+                                          onClick={() => handleRollback(v.version_seq)}
                                         >
                                           回滚到此版本
                                         </Button>
@@ -487,23 +478,6 @@ const ResourceEdit: React.FC = () => {
                                       <Descriptions.Item label="操作人">
                                         {v.operator || '-'}
                                       </Descriptions.Item>
-                                      {v.diff ? (
-                                        <Descriptions.Item label="Diff 摘要">
-                                          <pre
-                                            style={{
-                                              whiteSpace: 'pre-wrap',
-                                              margin: 0,
-                                              maxHeight: 160,
-                                              overflow: 'auto',
-                                              fontSize: 12,
-                                            }}
-                                          >
-                                            {typeof v.diff === 'string'
-                                              ? v.diff
-                                              : JSON.stringify(v.diff, null, 2)}
-                                          </pre>
-                                        </Descriptions.Item>
-                                      ) : null}
                                     </Descriptions>
                                   </Card>
                                 ),

@@ -102,13 +102,11 @@ const ClusterImport: React.FC = () => {
       }
       setPingLoading(true);
       setPingResult(null);
+      // unwrap 成功即连接成功（失败走 errcode，会被 throw）
       const res = await tempPing({ kubeconfig_text: kc }).unwrap();
-      setPingResult({ success: res.success, message: res.message });
-      if (res.success) {
-        message.success(res.message || '连接成功');
-      } else {
-        message.error(res.message || '连接失败');
-      }
+      const info = `${res.server_version || '未知版本'} · 节点 ${res.node_count ?? '-'} · ${res.cost_ms}ms`;
+      setPingResult({ success: true, message: info });
+      message.success('连接成功');
     } catch {
       setPingResult({ success: false, message: '连接请求失败' });
     } finally {

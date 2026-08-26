@@ -1,17 +1,27 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './axiosBaseQuery';
 
+// 与后端 models.Cluster 的 JSON 序列化对齐（snake_case）
 export interface Cluster {
+  id?: number;
   code: string;
   name: string;
   description?: string;
+  api_server?: string;
+  /** 0 = Offline, 1 = Online（后端 ClusterStatus） */
+  status: number;
   version?: string;
-  nodes?: number;
-  status: 'Online' | 'Offline' | string;
-  lastSyncTime?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  node_count?: number;
+  last_sync_at?: string;
+  labels?: Record<string, unknown>;
+  creator_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
+
+/** 集群状态枚举（后端 ClusterStatus int8） */
+export const CLUSTER_STATUS_OFFLINE = 0;
+export const CLUSTER_STATUS_ONLINE = 1;
 
 export interface ListClustersParams {
   keyword?: string;
@@ -41,11 +51,11 @@ export interface UpdateClusterData {
   labels?: string;
 }
 
+// 与后端 cluster.PingResult 对齐：失败时走错误码（unwrap 会 throw），成功才有负载
 export interface PingResponse {
-  success: boolean;
-  message?: string;
-  version?: string;
-  nodes?: number;
+  server_version: string;
+  node_count: number;
+  cost_ms: number;
 }
 
 export interface TempPingData {

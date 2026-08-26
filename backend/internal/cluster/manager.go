@@ -165,6 +165,50 @@ func (m *Manager) Ping(clusterCode string) (*PingResult, error) {
 	}, nil
 }
 
+// PingWithKubeconfig 用「尚未入库」的 kubeconfig 文本做临时连通性检测（导入前测试连接）。
+// 与 Ping 的区别：不读取/更新数据库，只验证 kubeconfig 能否连上目标集群。
+func (m *Manager) PingWithKubeconfig(rawKubeconfig []byte) (*PingResult, error) {
+	if len(rawKubeconfig) == 0 {
+		return nil, errcode.New(errcode.InvalidArgument, "kubeconfig 不能为空")
+	}
+
+	parsed, err := kubeconfig.Parse(rawKubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	start := time.Now()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	clientset, err := kubernetes.NewForConfig(parsed.RestConfig)
+	if err != nil {
+		return nil, errcode.Wrap(errcode.ClusterConnectFail, err, "创建 kubernetes client 失败")
+	}
+
+	versionInfo, err := clientset.Discovery().ServerVersion()
+	if err != nil {
+		return nil, errcode.Wrap(errcode.ClusterConnectFail, err, "调用 /version 失败")
+	}
+
+	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 5000})
+	if err != nil {
+		return nil, errcode.Wrap(errcode.ClusterConnectFail, err, "获取节点列表失败")
+	}
+
+	serverVer := versionInfo.GitVersion
+	if serverVer == "" {
+		serverVer = fmt.Sprintf("v%s.%s", versionInfo.Major, versionInfo.Minor)
+	}
+
+	return &PingResult{
+		ServerVersion: serverVer,
+		NodeCount:     len(nodeList.Items),
+		CostMs:        time.Since(start).Milliseconds(),
+	}, nil
+}
+
 func (m *Manager) GetByCode(clusterCode string) (*models.Cluster, error) {
 	if clusterCode == "" {
 		return nil, errcode.New(errcode.InvalidArgument, "cluster code 不能为空")

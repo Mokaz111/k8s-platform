@@ -3,40 +3,48 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './axiosBaseQuery';
 import { download as downloadFile } from './request';
 
-export type StorageType = 'Local' | 'S3' | 'NFS';
-export type BackupStatus = 'Running' | 'Success' | 'Failed' | 'Pending';
+/** 后端存储类型（normalizeStorageType 归一化为小写） */
+export type StorageType = 'local' | 'nfs' | 's3';
+
+/** 后端 models.BackupTaskStatus：pending / running / success / failed / cancelled */
+export type BackupStatus = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 
 export type BackupMode = 'single' | 'namespace_batch';
 
+/**
+ * 与后端 models.BackupTask 的 JSON 输出对齐（snake_case）：
+ * backup_type 取值 single / namespace_batch / restore（恢复任务）
+ */
 export interface Backup {
-  id: string;
-  code: string;
-  clusterName?: string;
-  namespace?: string;
-  namespaces?: string[];
-  apiVersion: string;
-  kind: string;
-  kindFilter?: string[];
-  name: string;
-  mode?: BackupMode;
-  backupType?: string; // single / namespace_batch / restore
-  storageType: StorageType;
-  size?: number;
+  id: number;
+  cluster_code: string;
+  namespace?: string | null;
+  target_kind?: string | null;
+  target_name?: string | null;
+  backup_type: string;
+  storage_type: string;
+  storage_path?: string;
   status: BackupStatus;
+  size_bytes?: number | null;
   operator?: string;
-  createdAt?: string;
-  finishedAt?: string;
-  message?: string;
-  downloadUrl?: string;
+  operator_id?: number;
+  started_at?: string | null;
+  completed_at?: string | null;
+  error_message?: string | null;
+  object_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
+/**
+ * 后端 ListBackups 支持的过滤参数（handler/backup.go ListBackups）：
+ * cluster_code / status / keyword / backup_type + 分页
+ */
 export interface ListBackupsParams {
   keyword?: string;
-  code?: string;
-  namespace?: string;
-  kind?: string;
-  storageType?: StorageType;
+  cluster_code?: string;
   status?: BackupStatus;
+  backup_type?: string;
   page?: number;
   size?: number;
 }
@@ -46,20 +54,15 @@ export interface ListBackupsResponse {
   total: number;
 }
 
+/** 与后端 createBackupReq 对齐（snake_case） */
 export interface CreateBackupBody {
-  mode?: 'single' | 'namespace_batch';
+  mode?: BackupMode;
   namespace?: string;
   namespaces?: string[];
-  // 单对象模式用：
-  apiVersion?: string;
   target_kind?: string;
-  kind?: string; // 兼容旧字段
   target_name?: string;
-  name?: string; // 兼容旧字段
-  // 批量模式用：
   kind_filter?: string[];
-  storageType: StorageType;
-  scope?: 'object' | 'namespace' | 'namespace_batch';
+  storage_type?: StorageType;
 }
 
 export interface CreateBackupParams {
@@ -69,14 +72,15 @@ export interface CreateBackupParams {
 
 export type RestoreMode = 'overwrite' | 'create-new';
 
+/** 与后端 restoreBackupReq 对齐：target_cluster_code / mode / target_namespace */
 export interface RestoreBackupBody {
-  targetCluster?: string;
-  targetNamespace?: string;
+  target_cluster_code?: string;
+  target_namespace?: string;
   mode?: RestoreMode;
 }
 
 export interface RestoreParams {
-  id: string;
+  id: number;
   body?: RestoreBackupBody;
 }
 
@@ -101,20 +105,21 @@ export const backupApi = createApi({
     }),
     createBackup: builder.mutation<Backup, CreateBackupParams>({
       query: ({ code, body }) => ({
-        url: `/clusters/${code}/backups`,
+        url: `/clusters/${encodeURIComponent(code)}/backups`,
         method: 'POST',
         data: body,
       }),
       invalidatesTags: [{ type: 'Backup', id: 'LIST' }],
     }),
-    getBackup: builder.query<Backup, string>({
+    getBackup: builder.query<Backup, number>({
       query: (id) => ({
         url: `/backups/${id}`,
         method: 'GET',
       }),
       providesTags: (_result, _err, id) => [{ type: 'Backup', id }],
     }),
-    restoreBackup: builder.mutation<{ success: boolean; message?: string; taskId?: string }, RestoreParams>({
+    /** 恢复任务提交后返回新建的 BackupTask（id 即任务 id，可接入 WS 进度） */
+    restoreBackup: builder.mutation<Backup, RestoreParams>({
       query: ({ id, body }) => ({
         url: `/backups/${id}/restore`,
         method: 'POST',
@@ -122,7 +127,7 @@ export const backupApi = createApi({
       }),
       invalidatesTags: [{ type: 'Backup', id: 'LIST' }],
     }),
-    deleteBackup: builder.mutation<void, string>({
+    deleteBackup: builder.mutation<void, number>({
       query: (id) => ({
         url: `/backups/${id}`,
         method: 'DELETE',
@@ -145,7 +150,7 @@ export const {
 
 // ============== downloadBackup: 基于 axios blob 的 hook ===========================
 export interface DownloadBackupArgs {
-  id: string;
+  id: number;
   filename?: string;
 }
 
@@ -171,13 +176,10 @@ export const useDownloadBackup = () => {
 
 // 非 hook 版本，用于按钮直接调用
 export const downloadBackupById = async (record: Backup): Promise<void> => {
-  const isBatch =
-    record.mode === 'namespace_batch' ||
-    (record.namespaces && record.namespaces.length > 1) ||
-    (record.kindFilter && record.kindFilter.length > 1);
+  const isBatch = record.backup_type === 'namespace_batch';
   const ext = isBatch ? 'tar.gz' : 'yaml';
-  const namePart = record.name || (isBatch ? 'batch' : record.kind) || record.id;
-  const filename = `backup-${record.code}-${namePart}-${record.id.slice(0, 8)}.${ext}`;
-  const url = record.downloadUrl || `/backups/${record.id}/download`;
+  const namePart = record.target_name || (isBatch ? 'batch' : record.target_kind) || record.id;
+  const filename = `backup-${record.cluster_code}-${namePart}-${record.id}.${ext}`;
+  const url = `/backups/${record.id}/download`;
   await downloadFile(url, filename);
 };

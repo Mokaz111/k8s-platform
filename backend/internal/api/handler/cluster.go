@@ -173,8 +173,35 @@ func (h *ClusterHandler) DeleteCluster(c *gin.Context) {
 	response.OK(c, gin.H{"deleted": true, "code": code})
 }
 
+// tempPingReq 导入集群前的临时连通性检测请求体（code 为 "_" 时生效）
+type tempPingReq struct {
+	KubeconfigText string `json:"kubeconfig_text"`
+}
+
 func (h *ClusterHandler) PingCluster(c *gin.Context) {
 	code := c.Param("code")
+
+	// code 为 "_" 时走「临时 ping」：用请求体里的 kubeconfig_text 直接检测，
+	// 用于导入集群前的测试连接（kubeconfig 尚未入库）
+	if code == "_" {
+		var req tempPingReq
+		if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.KubeconfigText) == "" {
+			response.Fail(c, errcode.New(errcode.InvalidArgument, "临时检测必须提供 kubeconfig_text"))
+			return
+		}
+		result, err := h.Mgr.PingWithKubeconfig([]byte(req.KubeconfigText))
+		if err != nil {
+			if ec, ok := err.(*errcode.Error); ok {
+				response.Fail(c, ec)
+			} else {
+				response.Fail(c, errcode.Wrap(errcode.Internal, err))
+			}
+			return
+		}
+		response.OK(c, result)
+		return
+	}
+
 	result, err := h.Mgr.Ping(code)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {

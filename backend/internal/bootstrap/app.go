@@ -157,6 +157,11 @@ func (a *App) RegisterAPIRoutes() *gin.Engine {
 	gin.SetMode(a.Cfg.Server.Mode)
 	r := gin.New()
 
+	// 资源路由的 :apiVersion 参数包含斜杠（如 apps/v1），前端以 encodeURIComponent
+	// 编码为 apps%2Fv1 传递；开启 UseRawPath 让路由按原始（编码后）路径匹配单段参数，
+	// UnescapePathValues 默认 true 会自动还原为 apps/v1
+	r.UseRawPath = true
+
 	// 全局中间件
 	r.Use(middleware.CORS(&a.Cfg.Security))
 	r.Use(middleware.RequestID())

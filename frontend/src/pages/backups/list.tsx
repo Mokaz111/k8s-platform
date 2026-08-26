@@ -30,9 +30,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import {
   Backup,
-  BackupMode,
   BackupStatus,
-  StorageType,
   downloadBackupById,
   useDeleteBackupMutation,
   useListBackupsQuery,
@@ -44,39 +42,38 @@ import { usePermission } from '@/hooks/usePermission';
 import { useBackupProgress } from '@/hooks/useBackupProgress';
 import { Progress } from 'antd';
 
-const storageColorMap: Record<StorageType, string> = {
-  Local: 'geekblue',
-  S3: 'orange',
-  NFS: 'purple',
+const storageColorMap: Record<string, string> = {
+  local: 'geekblue',
+  s3: 'orange',
+  nfs: 'purple',
 };
 
-const statusColorMap: Record<BackupStatus, string> = {
-  Running: 'processing',
-  Success: 'success',
-  Failed: 'error',
-  Pending: 'warning',
+const statusColorMap: Record<string, string> = {
+  running: 'processing',
+  success: 'success',
+  failed: 'error',
+  pending: 'warning',
+  cancelled: 'default',
 };
 
-const statusLabelMap: Record<BackupStatus, string> = {
-  Running: '运行中',
-  Success: '成功',
-  Failed: '失败',
-  Pending: '等待中',
+const statusLabelMap: Record<string, string> = {
+  running: '运行中',
+  success: '成功',
+  failed: '失败',
+  pending: '等待中',
+  cancelled: '已取消',
 };
 
-const modeLabelMap: Record<BackupMode | string, string> = {
+const modeLabelMap: Record<string, string> = {
   single: '单对象',
   namespace_batch: '命名空间批量',
-  object: '单对象',
-  namespace: '命名空间级',
+  restore: '恢复任务',
 };
 
 interface ListFilters {
   keyword?: string;
-  code?: string;
-  namespace?: string;
-  kind?: string;
-  storageType?: StorageType;
+  cluster_code?: string;
+  backup_type?: string;
   status?: BackupStatus;
   page?: number;
   size?: number;
@@ -110,10 +107,8 @@ const BackupList: React.FC = () => {
 
   const [filters, setFilters] = useState<ListFilters>({
     keyword: '',
-    code: codeParam,
-    namespace: '',
-    kind: '',
-    storageType: undefined,
+    cluster_code: codeParam,
+    backup_type: undefined,
     status: undefined,
     page: 1,
     size: 10,
@@ -143,8 +138,8 @@ const BackupList: React.FC = () => {
     if (!canRestore) return;
     setRestoringRecord(record);
     restoreForm.setFieldsValue({
-      targetCluster: record.code,
-      targetNamespace: record.namespace,
+      targetCluster: record.cluster_code,
+      targetNamespace: record.namespace || undefined,
       mode: 'create-new',
     });
     setRestoreOpen(true);
@@ -156,13 +151,14 @@ const BackupList: React.FC = () => {
       const values = await restoreForm.validateFields();
       const res = await restoreBackup({
         id: restoringRecord.id,
-        body: values,
+        body: {
+          target_cluster_code: values.targetCluster,
+          target_namespace: values.targetNamespace || undefined,
+          mode: values.mode,
+        },
       }).unwrap();
-      const target = values.targetCluster || restoringRecord.code;
-      const tip = res.taskId
-        ? `恢复任务 #${res.taskId} 已提交，切到集群 ${target} 查看进度`
-        : res.message || '恢复任务已提交';
-      message.success(tip);
+      const target = values.targetCluster || restoringRecord.cluster_code;
+      message.success(`恢复任务 #${res.id} 已提交，切到集群 ${target} 查看进度`);
       setRestoreOpen(false);
       handleReload();
     } catch {
@@ -187,16 +183,16 @@ const BackupList: React.FC = () => {
     () => [
       {
         title: '备份时间',
-        dataIndex: 'createdAt',
-        key: 'createdAt',
+        dataIndex: 'created_at',
+        key: 'created_at',
         width: 180,
         sorter: true,
         render: (_dom, record) => (
           <Space direction="vertical" size={0}>
-            <span>{record.createdAt ? dayjs(record.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
-            {record.finishedAt && (
+            <span>{record.created_at ? dayjs(record.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
+            {record.completed_at && (
               <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
-                完成: {dayjs(record.finishedAt).format('MM-DD HH:mm:ss')}
+                完成: {dayjs(record.completed_at).format('MM-DD HH:mm:ss')}
               </span>
             )}
           </Space>
@@ -211,24 +207,17 @@ const BackupList: React.FC = () => {
       },
       {
         title: '集群',
-        dataIndex: 'code',
-        key: 'code',
+        dataIndex: 'cluster_code',
+        key: 'cluster_code',
         width: 140,
-        render: (_dom, record) => (
-          <Space>
-            <Tag color="blue">{record.code}</Tag>
-            {record.clusterName && (
-              <span style={{ color: 'rgba(0,0,0,0.65)' }}>{record.clusterName}</span>
-            )}
-          </Space>
-        ),
+        render: (_dom, record) => <Tag color="blue">{record.cluster_code}</Tag>,
       },
       {
         title: '类型',
         key: 'taskType',
         width: 100,
         render: (_dom, record) => {
-          const isRestore = record.backupType === 'restore';
+          const isRestore = record.backup_type === 'restore';
           return (
             <Tag color={isRestore ? 'orange' : 'blue'}>
               {isRestore ? '恢复' : '备份'}
@@ -238,11 +227,11 @@ const BackupList: React.FC = () => {
       },
       {
         title: '备份模式',
-        dataIndex: 'mode',
-        key: 'mode',
+        dataIndex: 'backup_type',
+        key: 'backup_type',
         width: 120,
         render: (_dom, record) => {
-          const displayMode = record.mode || (record.namespaces && record.namespaces.length > 1 ? 'namespace_batch' : 'single');
+          const displayMode = record.backup_type || 'single';
           return <Tag color={displayMode === 'namespace_batch' ? 'magenta' : 'cyan'}>
             {modeLabelMap[displayMode] || displayMode || '单对象'}
           </Tag>;
@@ -254,27 +243,12 @@ const BackupList: React.FC = () => {
         key: 'namespace',
         width: 180,
         render: (_dom, record) => {
-          const batchNs = record.namespaces;
-          if (batchNs && batchNs.length > 0) {
-            if (batchNs.length <= 3) {
-              return (
-                <Space size={[4, 4]} wrap>
-                  {batchNs.map((n) => (
-                    <Tag key={n} color="blue">{n}</Tag>
-                  ))}
-                </Space>
-              );
-            }
-            return (
-              <Space size={[4, 4]} wrap>
-                {batchNs.slice(0, 3).map((n) => (
-                  <Tag key={n} color="blue">{n}</Tag>
-                ))}
-                <Tag color="default">+{batchNs.length - 3}</Tag>
-              </Space>
-            );
+          // 批量多命名空间时后端存 "multi:<count>" 文本
+          const ns = record.namespace;
+          if (ns && ns.startsWith('multi:')) {
+            return <Tag color="geekblue">{ns.replace('multi:', '多命名空间 ×')}</Tag>;
           }
-          return record.namespace || <Tag>（集群级）</Tag>;
+          return ns || <Tag>（集群级）</Tag>;
         },
       },
       {
@@ -282,66 +256,31 @@ const BackupList: React.FC = () => {
         key: 'object',
         width: 260,
         render: (_v, record) => {
-          // 命名空间批量模式：展示 kind_filter 列表
-          const kf = record.kindFilter;
-          if (kf && kf.length > 0) {
-            if (kf.length <= 4) {
-              return (
-                <Space size={[4, 4]} wrap>
-                  {kf.map((k) => (
-                    <Tag key={k} color="purple">{k}</Tag>
-                  ))}
-                </Space>
-              );
-            }
-            return (
-              <Space size={[4, 4]} wrap>
-                {kf.slice(0, 4).map((k) => (
-                  <Tag key={k} color="purple">{k}</Tag>
-                ))}
-                <Tag color="default">+{kf.length - 4}</Tag>
-              </Space>
-            );
-          }
-          // 单对象/命名空间级模式：展示 kind + name 链接
+          // 批量模式：target_kind 仅存第一个 kind（详情在后端 Redis payload，不随列表返回）
           return (
             <Space direction="vertical" size={0}>
-              <Tag color="purple">{record.kind}</Tag>
-              {record.name && (
-                <a
-                  style={{ wordBreak: 'break-all' }}
-                  onClick={() => {
-                    const ns = record.namespace ? encodeURIComponent(record.namespace) : '_';
-                    navigate(
-                      `/resources/${record.code}/${encodeURIComponent(record.apiVersion)}/${encodeURIComponent(
-                        record.kind,
-                      )}/${ns}/${encodeURIComponent(record.name)}/edit`,
-                    );
-                  }}
-                >
-                  {record.name}
-                </a>
-              )}
+              {record.target_kind && <Tag color="purple">{record.target_kind}</Tag>}
+              {record.target_name && <span style={{ wordBreak: 'break-all' }}>{record.target_name}</span>}
             </Space>
           );
         },
       },
       {
         title: '存储类型',
-        dataIndex: 'storageType',
-        key: 'storageType',
+        dataIndex: 'storage_type',
+        key: 'storage_type',
         width: 110,
         render: (_dom, record) => (
-          <Tag color={storageColorMap[record.storageType] || 'default'}>{record.storageType}</Tag>
+          <Tag color={storageColorMap[record.storage_type] || 'default'}>{record.storage_type}</Tag>
         ),
       },
       {
         title: '大小',
-        dataIndex: 'size',
-        key: 'size',
+        dataIndex: 'size_bytes',
+        key: 'size_bytes',
         width: 110,
         render: (_dom, record) => {
-          const v = record.size;
+          const v = record.size_bytes;
           if (!v) return '-';
           if (v < 1024) return `${v} B`;
           if (v < 1024 * 1024) return `${(v / 1024).toFixed(1)} KB`;
@@ -432,10 +371,7 @@ const BackupList: React.FC = () => {
         width: 280,
         fixed: 'right',
         render: (_v, record) => {
-          const isBatch =
-            record.mode === 'namespace_batch' ||
-            (record.namespaces && record.namespaces.length > 1) ||
-            (record.kindFilter && record.kindFilter.length > 1);
+          const isBatch = record.backup_type === 'namespace_batch' || record.backup_type === 'restore';
           return (
             <Space size="small" wrap>
               <Button
@@ -443,7 +379,7 @@ const BackupList: React.FC = () => {
                 size="small"
                 icon={<RollbackOutlined />}
                 onClick={() => handleOpenRestore(record)}
-                disabled={record.status !== 'Success' || !canRestore}
+                disabled={record.status !== 'success' || isBatch || !canRestore}
               >
                 恢复
               </Button>
@@ -452,7 +388,7 @@ const BackupList: React.FC = () => {
                 size="small"
                 icon={<DownloadOutlined />}
                 onClick={() => handleDownload(record)}
-                disabled={record.status !== 'Success' || !canDownload}
+                disabled={record.status !== 'success' || !canDownload}
               >
                 下载
               </Button>
@@ -460,20 +396,20 @@ const BackupList: React.FC = () => {
                 type="link"
                 size="small"
                 icon={<HistoryOutlined />}
-                disabled={isBatch || !record.name}
+                disabled={isBatch || !record.target_name}
                 onClick={() => {
-                  const ns = record.namespace ? encodeURIComponent(record.namespace) : '_';
+                  // BackupTask 不存 api_version，无法直达编辑页版本 Tab，退化为跳转资源列表并按 kind 过滤
                   navigate(
-                    `/resources/${record.code}/${encodeURIComponent(record.apiVersion)}/${encodeURIComponent(
-                      record.kind,
-                    )}/${ns}/${encodeURIComponent(record.name)}/edit?tab=versions`,
+                    `/resources/list?cluster_code=${encodeURIComponent(record.cluster_code)}${
+                      record.target_kind ? `&kind=${encodeURIComponent(record.target_kind)}` : ''
+                    }${record.namespace ? `&namespace=${encodeURIComponent(record.namespace)}` : ''}`,
                   );
                 }}
               >
                 资源版本
               </Button>
               <Popconfirm
-                title={`确认删除备份「${record.name || `#${record.id}`}」？`}
+                title={`确认删除备份「${record.target_name || `#${record.id}`}」？`}
                 description="删除后备份文件也将被清理"
                 okButtonProps={{ danger: true, disabled: !canDelete }}
                 onConfirm={async () => {
@@ -549,10 +485,8 @@ const BackupList: React.FC = () => {
         form={{
           initialValues: {
             keyword: filters.keyword,
-            code: filters.code,
-            namespace: filters.namespace,
-            kind: filters.kind,
-            storageType: filters.storageType,
+            cluster_code: filters.cluster_code,
+            backup_type: filters.backup_type,
             status: filters.status,
           },
         }}
@@ -560,10 +494,8 @@ const BackupList: React.FC = () => {
           setFilters((prev) => ({
             ...prev,
             keyword: (values.keyword as string) || '',
-            code: (values.code as string) || undefined,
-            namespace: (values.namespace as string) || '',
-            kind: (values.kind as string) || '',
-            storageType: (values.storageType as StorageType) || undefined,
+            cluster_code: (values.cluster_code as string) || undefined,
+            backup_type: (values.backup_type as string) || undefined,
             status: (values.status as BackupStatus) || undefined,
             page: 1,
           }));
@@ -572,10 +504,8 @@ const BackupList: React.FC = () => {
           setFilters((prev) => ({
             ...prev,
             keyword: '',
-            code: undefined,
-            namespace: '',
-            kind: '',
-            storageType: undefined,
+            cluster_code: undefined,
+            backup_type: undefined,
             status: undefined,
             page: 1,
           }));
@@ -617,7 +547,7 @@ const BackupList: React.FC = () => {
           <Space>
             <RollbackOutlined />
             <span>恢复备份</span>
-            {restoringRecord && <Tag color="blue">#{restoringRecord.id.slice(0, 8)}</Tag>}
+            {restoringRecord && <Tag color="blue">#{restoringRecord.id}</Tag>}
           </Space>
         }
         open={restoreOpen}
@@ -631,14 +561,14 @@ const BackupList: React.FC = () => {
         {restoringRecord && (
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             <Descriptions size="small" column={2} bordered>
-              <Descriptions.Item label="集群">{restoringRecord.code}</Descriptions.Item>
+              <Descriptions.Item label="集群">{restoringRecord.cluster_code}</Descriptions.Item>
               <Descriptions.Item label="命名空间">
                 {restoringRecord.namespace || '（集群级）'}
               </Descriptions.Item>
-              <Descriptions.Item label="Kind">{restoringRecord.kind}</Descriptions.Item>
-              <Descriptions.Item label="对象名称">{restoringRecord.name}</Descriptions.Item>
+              <Descriptions.Item label="Kind">{restoringRecord.target_kind || '-'}</Descriptions.Item>
+              <Descriptions.Item label="对象名称">{restoringRecord.target_name || '-'}</Descriptions.Item>
               <Descriptions.Item label="存储类型" span={2}>
-                {restoringRecord.storageType}
+                {restoringRecord.storage_type}
               </Descriptions.Item>
             </Descriptions>
             <Form form={restoreForm} layout="vertical" preserve={false}>

@@ -16,23 +16,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import dayjs from 'dayjs';
 import {
+  CLUSTER_STATUS_ONLINE,
   Cluster,
   useDeleteClusterMutation,
   useListClustersQuery,
   usePingClusterMutation,
+  useTempPingMutation,
   useUpdateClusterMutation,
 } from '@/app/services/cluster';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
-
-const statusColorMap: Record<string, string> = {
-  Online: 'green',
-  Offline: 'red',
-  Running: 'blue',
-  Pending: 'gold',
-  Error: 'red',
-};
 
 interface QueryParams {
   keyword?: string;
@@ -74,6 +68,7 @@ const ClusterList: React.FC = () => {
   const [updateCluster, { isLoading: updateLoading }] = useUpdateClusterMutation();
   const [deleteCluster] = useDeleteClusterMutation();
   const [pingCluster] = usePingClusterMutation();
+  const [tempPing] = useTempPingMutation();
 
   const handleReload = useCallback(() => {
     refetch();
@@ -111,10 +106,10 @@ const ClusterList: React.FC = () => {
       },
       {
         title: '节点数',
-        dataIndex: 'nodes',
-        key: 'nodes',
+        dataIndex: 'node_count',
+        key: 'node_count',
         width: 90,
-        render: (_dom, record) => (typeof record.nodes === 'number' ? record.nodes : '-'),
+        render: (_dom, record) => (typeof record.node_count === 'number' ? record.node_count : '-'),
       },
       {
         title: '状态',
@@ -122,17 +117,16 @@ const ClusterList: React.FC = () => {
         key: 'status',
         width: 110,
         render: (_dom, record) => {
-          const status = record.status;
-          const color = statusColorMap[status] || 'default';
-          return <Tag color={color}>{status || 'Unknown'}</Tag>;
+          const online = record.status === CLUSTER_STATUS_ONLINE;
+          return <Tag color={online ? 'green' : 'red'}>{online ? 'Online' : 'Offline'}</Tag>;
         },
       },
       {
         title: '最近同步时间',
-        dataIndex: 'lastSyncTime',
-        key: 'lastSyncTime',
+        dataIndex: 'last_sync_at',
+        key: 'last_sync_at',
         width: 180,
-        render: (_dom, record) => (record.lastSyncTime ? dayjs(record.lastSyncTime).format('YYYY-MM-DD HH:mm:ss') : '-'),
+        render: (_dom, record) => (record.last_sync_at ? dayjs(record.last_sync_at).format('YYYY-MM-DD HH:mm:ss') : '-'),
       },
       {
         title: '操作',
@@ -150,17 +144,13 @@ const ClusterList: React.FC = () => {
                 setPingingCode(record.code);
                 try {
                   const res = await pingCluster(record.code).unwrap();
-                  if (res.success) {
-                    message.success(
-                      `Ping 成功 ${res.version ? `(v${res.version})` : ''}${
-                        res.nodes ? ` 节点:${res.nodes}` : ''
-                      }`,
-                    );
-                  } else {
-                    message.error(res.message || 'Ping 失败');
-                  }
+                  message.success(
+                    `Ping 成功${res.server_version ? ` (${res.server_version})` : ''}${
+                      typeof res.node_count === 'number' ? ` 节点:${res.node_count}` : ''
+                    }${res.cost_ms ? ` 耗时:${res.cost_ms}ms` : ''}`,
+                  );
                 } catch {
-                  message.error('Ping 请求失败');
+                  message.error('Ping 失败');
                 } finally {
                   setPingingCode(null);
                   handleReload();
@@ -230,6 +220,7 @@ const ClusterList: React.FC = () => {
       navigate,
       pingingCode,
       pingCluster,
+      tempPing,
       pingLoading,
       deleteCluster,
       selectedClusterCode,
@@ -322,18 +313,13 @@ const ClusterList: React.FC = () => {
                 try {
                   setEditPingLoading(true);
                   setEditPingResult(null);
-                  const res = await pingCluster(editingCluster.code).unwrap();
-                  // pingCluster 实际上走已存在集群；但这里我们只需要「测试新 kubeconfig 是否能连」，因此复用 tempPing 的 pattern：
-                  // 为避免后端再引入 endpoint，这里如果用户填了新 kubeconfig 但是没有接口，就退化为使用 pingCluster（基于已存 kubeconfig）
-                  // 若未来需要 pre-check 更新后的 kubeconfig，可在后端加 temp-update-ping
-                  setEditPingResult({ success: res.success, message: res.message });
-                  if (res.success) {
-                    message.success(res.message || '连接校验通过');
-                  } else {
-                    message.error(res.message || '连接校验失败');
-                  }
+                  // 用临时 ping 验证「尚未保存」的新 kubeconfig（POST /clusters/_/ping）
+                  const res = await tempPing({ kubeconfig_text: kubeText }).unwrap();
+                  const info = `${res.server_version || '未知版本'} · 节点 ${res.node_count ?? '-'} · ${res.cost_ms}ms`;
+                  setEditPingResult({ success: true, message: info });
+                  message.success('连接校验通过');
                 } catch {
-                  setEditPingResult({ success: false, message: '连接请求失败' });
+                  setEditPingResult({ success: false, message: '连接校验失败' });
                 } finally {
                   setEditPingLoading(false);
                 }

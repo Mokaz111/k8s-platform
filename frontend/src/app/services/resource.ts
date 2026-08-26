@@ -55,6 +55,10 @@ export interface UpdateResourceParams extends GetResourceParams {
   yaml: string;
 }
 
+// apiVersion 含斜杠（如 apps/v1、networking.k8s.io/v1），后端开启 UseRawPath 按原始路径匹配
+// 单段参数，因此前端必须 encodeURIComponent 一次（apps%2Fv1），否则会被当成多个路径段导致 404
+const enc = (s: string): string => encodeURIComponent(s);
+
 export const resourceApi = createApi({
   reducerPath: 'resourceApi',
   baseQuery: axiosBaseQuery(),
@@ -62,7 +66,7 @@ export const resourceApi = createApi({
   endpoints: (builder) => ({
     listResources: builder.query<ListResourcesResponse, ListResourcesParams>({
       query: ({ code, apiVersion, kind, namespace, page, size, keyword }) => ({
-        url: `/clusters/${code}/resources/${apiVersion}/${kind}`,
+        url: `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}`,
         method: 'GET',
         params: {
           namespace,
@@ -76,8 +80,8 @@ export const resourceApi = createApi({
     getResource: builder.query<KubernetesResource, GetResourceParams>({
       query: ({ code, apiVersion, kind, namespace, name }) => ({
         url: namespace
-          ? `/clusters/${code}/resources/${apiVersion}/${kind}/${namespace}/${name}`
-          : `/clusters/${code}/resources/${apiVersion}/${kind}/${name}`,
+          ? `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}/${enc(namespace)}/${enc(name)}`
+          : `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}/${enc(name)}`,
         method: 'GET',
       }),
       providesTags: (_result, _err, params) => [
@@ -86,7 +90,7 @@ export const resourceApi = createApi({
     }),
     createResource: builder.mutation<KubernetesResource, CreateResourceParams>({
       query: ({ code, apiVersion, kind, yaml }) => ({
-        url: `/clusters/${code}/resources/${apiVersion}/${kind}`,
+        url: `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}`,
         method: 'POST',
         data: { yaml },
       }),
@@ -95,8 +99,8 @@ export const resourceApi = createApi({
     updateResource: builder.mutation<KubernetesResource, UpdateResourceParams>({
       query: ({ code, apiVersion, kind, namespace, name, yaml }) => ({
         url: namespace
-          ? `/clusters/${code}/resources/${apiVersion}/${kind}/${namespace}/${name}`
-          : `/clusters/${code}/resources/${apiVersion}/${kind}/${name}`,
+          ? `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}/${enc(namespace)}/${enc(name)}`
+          : `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}/${enc(name)}`,
         method: 'PUT',
         data: { yaml },
       }),
@@ -108,8 +112,8 @@ export const resourceApi = createApi({
     deleteResource: builder.mutation<void, GetResourceParams>({
       query: ({ code, apiVersion, kind, namespace, name }) => ({
         url: namespace
-          ? `/clusters/${code}/resources/${apiVersion}/${kind}/${namespace}/${name}`
-          : `/clusters/${code}/resources/${apiVersion}/${kind}/${name}`,
+          ? `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}/${enc(namespace)}/${enc(name)}`
+          : `/clusters/${enc(code)}/resources/${enc(apiVersion)}/${enc(kind)}/${enc(name)}`,
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _err, params) => [
@@ -119,7 +123,7 @@ export const resourceApi = createApi({
     }),
     listNamespaces: builder.query<string[], string>({
       query: (code) => ({
-        url: `/clusters/${code}/resources/v1/Namespace`,
+        url: `/clusters/${enc(code)}/resources/v1/Namespace`,
         method: 'GET',
       }),
       transformResponse: (response: ListResourcesResponse | { items: KubernetesResource[] }) => {

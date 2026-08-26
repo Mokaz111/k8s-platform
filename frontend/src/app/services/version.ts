@@ -1,18 +1,25 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './axiosBaseQuery';
 
+/**
+ * 与后端 models.ResourceSnapshot 的 JSON 输出对齐（snake_case）
+ * （GET /versions 返回 OKList → { items, total }）
+ */
 export interface ResourceVersion {
-  seq: number;
-  apiVersion: string;
-  kind: string;
+  id: number;
+  cluster_code: string;
   namespace?: string;
+  api_version: string;
+  kind: string;
   name: string;
-  resourceVersion?: string;
-  operation?: 'CREATE' | 'UPDATE' | 'DELETE' | string;
+  version_seq: number;
+  raw_yaml?: string;
+  change_summary?: string;
   operator?: string;
-  yaml?: string;
-  diff?: unknown;
-  createdAt?: string;
+  source?: string; // ui / rollback / backup
+  operator_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ListVersionsParams {
@@ -21,8 +28,6 @@ export interface ListVersionsParams {
   kind: string;
   namespace?: string;
   name: string;
-  page?: number;
-  size?: number;
 }
 
 export interface ListVersionsResponse {
@@ -40,12 +45,12 @@ export interface GetVersionDiffParams {
   seqB: number;
 }
 
+/** GET /versions/diff 响应（后端 handler/version.go DiffVersions） */
 export interface VersionDiffResponse {
-  seqA: number;
-  seqB: number;
-  yamlA?: string;
-  yamlB?: string;
-  diff?: string;
+  seq_a: number;
+  seq_b: number;
+  yaml_a?: string;
+  yaml_b?: string;
 }
 
 export interface RollbackVersionParams {
@@ -57,10 +62,11 @@ export interface RollbackVersionParams {
   seq: number;
 }
 
+/** POST /versions/rollback 响应 */
 export interface RollbackResponse {
-  success: boolean;
-  message?: string;
-  newSeq?: number;
+  rolled_back: boolean;
+  seq: number;
+  object?: unknown;
 }
 
 export const versionApi = createApi({
@@ -68,40 +74,50 @@ export const versionApi = createApi({
   baseQuery: axiosBaseQuery(),
   tagTypes: ['Version'],
   endpoints: (builder) => ({
+    // 后端路由：GET /api/v1/versions?cluster_code=&namespace=&api_version=&kind=&name=
     listVersions: builder.query<ListVersionsResponse, ListVersionsParams>({
-      query: ({ code, apiVersion, kind, namespace, name, page, size }) => ({
-        url: `/clusters/${code}/versions`,
+      query: ({ code, apiVersion, kind, namespace, name }) => ({
+        url: '/versions',
         method: 'GET',
         params: {
-          apiVersion,
-          kind,
+          cluster_code: code,
           namespace,
+          api_version: apiVersion,
+          kind,
           name,
-          page,
-          size,
         } as Record<string, unknown>,
       }),
       providesTags: [{ type: 'Version', id: 'LIST' }],
     }),
+    // 后端路由：GET /api/v1/versions/diff?cluster_code=&...&seq_a=&seq_b=
     getVersionDiff: builder.query<VersionDiffResponse, GetVersionDiffParams>({
       query: ({ code, apiVersion, kind, namespace, name, seqA, seqB }) => ({
-        url: `/clusters/${code}/versions/diff`,
+        url: '/versions/diff',
         method: 'GET',
         params: {
-          apiVersion,
-          kind,
+          cluster_code: code,
           namespace,
+          api_version: apiVersion,
+          kind,
           name,
-          seqA,
-          seqB,
+          seq_a: seqA,
+          seq_b: seqB,
         } as Record<string, unknown>,
       }),
     }),
+    // 后端路由：POST /api/v1/versions/rollback（body 为 snake_case）
     rollbackVersion: builder.mutation<RollbackResponse, RollbackVersionParams>({
       query: ({ code, apiVersion, kind, namespace, name, seq }) => ({
-        url: `/clusters/${code}/versions/rollback`,
+        url: '/versions/rollback',
         method: 'POST',
-        data: { apiVersion, kind, namespace, name, seq },
+        data: {
+          cluster_code: code,
+          namespace,
+          api_version: apiVersion,
+          kind,
+          name,
+          seq,
+        },
       }),
       invalidatesTags: [{ type: 'Version', id: 'LIST' }],
     }),

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   Button,
   Card,
@@ -36,7 +36,6 @@ interface CreateFormValues {
   namespace?: string;
   namespaces?: string[];
   scope: BackupMode;
-  apiVersion: string;
   kind: string;
   kindFilter?: string[];
   name?: string;
@@ -75,7 +74,6 @@ const BackupCreate: React.FC = () => {
   const preCode = searchParams.get('code') || selectedClusterCode || '';
   const preNamespace = searchParams.get('namespace') || '';
   const preKind = searchParams.get('kind') || '';
-  const preApiVersion = searchParams.get('apiVersion') || '';
   const preName = searchParams.get('name') || '';
 
   const { data: clusterData } = useListClustersQuery(undefined, {
@@ -86,14 +84,6 @@ const BackupCreate: React.FC = () => {
   const codeValue = Form.useWatch('code', form) as string | undefined;
   const scopeValue = Form.useWatch('scope', form) as BackupMode | undefined;
   const kindValue = Form.useWatch('kind', form) as string | undefined;
-
-  const kindApiVersion = useMemo(() => {
-    if (preApiVersion && preKind) {
-      return preApiVersion;
-    }
-    const found = COMMON_KINDS.find((k) => k.kind === kindValue);
-    return found?.apiVersion || '';
-  }, [kindValue, preApiVersion, preKind]);
 
   const { data: namespaceData } = useListNamespacesQuery(codeValue || '', {
     skip: !codeValue,
@@ -107,7 +97,6 @@ const BackupCreate: React.FC = () => {
     namespace: preNamespace || undefined,
     namespaces: preNamespace ? [preNamespace] : undefined,
     scope: 'object',
-    apiVersion: kindApiVersion,
     kind: preKind,
     kindFilter: preKind ? [preKind] : undefined,
     name: preName,
@@ -120,7 +109,6 @@ const BackupCreate: React.FC = () => {
         message.error('请选择集群');
         return;
       }
-      const av = values.apiVersion || kindApiVersion;
 
       // 根据 scope 决定 mode：
       //   object => single
@@ -130,8 +118,8 @@ const BackupCreate: React.FC = () => {
         values.scope === 'namespace' || values.scope === 'namespace_batch';
 
       const body: CreateBackupBody = {
-        storageType: values.storageType,
-        scope: values.scope,
+        // 后端 normalizeStorageType 大小写不敏感，统一转小写
+        storage_type: (values.storageType || 'Local').toLowerCase() as CreateBackupBody['storage_type'],
       };
 
       if (isBatch) {
@@ -171,16 +159,11 @@ const BackupCreate: React.FC = () => {
         }
         body.kind_filter = kfList;
       } else {
-        // 单对象模式：
+        // 单对象模式：后端按 target_kind/target_name 自行定位资源，无需 apiVersion
         body.mode = 'single';
-        if (!av) {
-          message.error('无法确定 apiVersion，请明确选择资源类型');
-          return;
-        }
         body.namespace = values.namespace || '';
         body.target_kind = values.kind;
         body.target_name = values.name || '';
-        body.apiVersion = av;
         if (!body.target_kind || !body.target_name) {
           message.error('单对象模式需要填写对象类别和名称');
           return;
@@ -378,18 +361,6 @@ const BackupCreate: React.FC = () => {
               { value: 'S3', label: 'S3 - 对象存储（暂未开放）' },
             ]}
           />
-
-          {scopeValue === 'object' && (
-            <ProFormText
-              name="apiVersion"
-              label="API Version"
-              placeholder="自动从类别推导，可手动覆盖"
-              tooltip="如 apps/v1, batch/v1, v1, storage.k8s.io/v1 等"
-              fieldProps={{
-                placeholder: kindApiVersion || '如 apps/v1 / v1 / batch/v1',
-              }}
-            />
-          )}
 
           {scopeValue === 'namespace_batch' && (
             <Card
