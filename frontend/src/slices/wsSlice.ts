@@ -180,8 +180,15 @@ const wsSlice = createSlice({
         }
         case WS_TYPE_POD_LOGS: {
           const payload = msg.data as PodLogLinePayload | undefined;
-          const channel = msg.channel || '';
-          if (!payload || !channel) break;
+          if (!payload) break;
+          // 正常路径：StreamPodLogs 直发，channel 为 "pod_logs:{cluster}:{ns}:{pod}"。
+          // Redis PubSub 路径：channel 仅为 "pod_logs"，此时用 payload 字段兜底构造，
+          // 避免所有 Pod 的日志混入同一个无人读取的桶。
+          const channel =
+            msg.channel && msg.channel.includes(':')
+              ? msg.channel
+              : buildPodLogChannel(payload.cluster_code, payload.namespace, payload.pod_name);
+          if (!channel) break;
           if (!state.podLogs[channel]) {
             state.podLogs[channel] = [];
           }

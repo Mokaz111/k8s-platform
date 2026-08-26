@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/app/store';
 import { subscribeChannel, unsubscribeChannel } from '@/app/services/websocket';
 import {
@@ -37,16 +37,13 @@ export function useClusterEvents(
 ): UseClusterEventsResult {
   const dispatch = useAppDispatch();
   const { clusterCode, namespace, kind, clearOnMount = true, enabled = true } = opts;
-  const mountedRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) return;
-    mountedRef.current = true;
     if (clearOnMount) dispatch(clearClusterEvents());
     subscribeChannel(WS_TYPE_CLUSTER_EVENT);
     return () => {
       unsubscribeChannel(WS_TYPE_CLUSTER_EVENT);
-      mountedRef.current = false;
     };
   }, [enabled, clearOnMount, dispatch]);
 

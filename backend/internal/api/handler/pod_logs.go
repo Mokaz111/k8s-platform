@@ -84,7 +84,10 @@ func (h *PodLogHandler) StreamPodLogsHandler(c *gin.Context) {
 		go func() { <-old.done }()
 	}
 
-	ctx, cancel := context.WithCancel(c.Request.Context())
+	// 注意：stream 生命周期必须脱离 HTTP 请求（本接口立即返回），
+	// 不能用 c.Request.Context()——它在响应写完后会被立即取消，导致日志流秒断。
+	// 生命周期由 active map + streamTimeout 控制，重复触发同一频道会取消旧流。
+	ctx, cancel := context.WithCancel(context.Background())
 	ctx = context.WithValue(ctx, "trace_id", c.GetString("trace_id"))
 	ctx, timeoutCancel := context.WithTimeout(ctx, streamTimeout)
 	done := make(chan struct{})

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/app/store';
 import { subscribeChannel, unsubscribeChannel } from '@/app/services/websocket';
 import {
@@ -44,16 +44,12 @@ export function usePodLogs(opts: UsePodLogsOptions): UsePodLogsResult {
     () => buildPodLogChannel(clusterCode, namespace, podName),
     [clusterCode, namespace, podName],
   );
-  const mountedRef = useRef(false);
-
   useEffect(() => {
     if (!enabled || !clusterCode || !namespace || !podName) return;
-    mountedRef.current = true;
     if (clearOnMount) dispatch(clearPodLogs(channel));
     subscribeChannel(channel);
     return () => {
       unsubscribeChannel(channel);
-      mountedRef.current = false;
     };
   }, [enabled, channel, clearOnMount, dispatch, clusterCode, namespace, podName]);
 

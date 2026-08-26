@@ -4,10 +4,10 @@ import { store } from '@/app/store';
 import {
   onMessage,
   setStatus,
+  setLastError,
   setReconnecting,
   addSubscription,
   removeSubscription,
-  clearSubscriptions,
   WSClientAction,
   WSMessage,
   WSConnectionStatus,
@@ -25,6 +25,12 @@ const WS_BASE_URL =
 
 // 模块级单例：整个 SPA 共享一个 WebSocket 连接
 let instance: WebSocketClient | null = null;
+
+// channel 引用计数（模块级，跨连接实例存活）：
+// 多个组件可能订阅同一 channel（如 task_progress / cluster_event），
+// 其中一个卸载时不能立刻退订，只有计数归零才真正向后端发送 unsubscribe。
+// 计数放在模块级而非实例内部，是为了在 token 刷新重建连接后仍能恢复订阅。
+const channelRefs = new Map<string, number>();
 
 export interface WebSocketClientOptions {
   token: string;
@@ -45,11 +51,19 @@ class WebSocketClient {
     this.token = opts.token;
     this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 25_000;
 
-    // 后端约定 ?token=xxx 鉴权（websocket/handler.go）
-    const url = `${WS_BASE_URL}?token=${encodeURIComponent(this.token)}`;
     this.dispatch(setStatus('connecting'));
 
-    this.rws = new ReconnectingWebSocket(url, undefined, {
+    // 关键：URL 以函数形式提供（reconnecting-websocket 的 UrlProvider），
+    // 每次（重）连接都会重新求值，从 Redux 读取最新 token。
+    // 若固化 URL，token 刷新后重连会一直携带旧 token，后端握手返回 401
+    // （浏览器表现为 close code 1006），从而陷入无限失败重试。
+    const urlProvider = () => {
+      const fresh = store.getState().user.token;
+      const token = fresh && fresh.length > 0 ? fresh : this.token;
+      return `${WS_BASE_URL}?token=${encodeURIComponent(token)}`;
+    };
+
+    this.rws = new ReconnectingWebSocket(urlProvider, undefined, {
       minReconnectionDelay: opts.reconnectMinDelayMs ?? 1000,
       maxReconnectionDelay: opts.reconnectMaxDelayMs ?? 30_000,
       reconnectionDelayGrowFactor: 1.4,
@@ -68,12 +82,15 @@ class WebSocketClient {
     if (!this.rws) return;
 
     this.rws.onopen = () => {
-      this.explicitlyClosed = false;
       this.dispatch(setStatus('open'));
-      // 重连后恢复订阅
-      const state = store.getState().ws;
-      state.subscriptions.forEach((ch) => this.sendRaw({ action: 'subscribe', channel: ch }));
-      // pendingSubscriptions：在 connect 之前调用的 subscribe() 也补发
+      // 重连后恢复订阅：以模块级 channelRefs 为准（计数 > 0 即应订阅）
+      channelRefs.forEach((count, ch) => {
+        if (count > 0) {
+          this.dispatch(addSubscription(ch)); // 同步 Redux subscriptions
+          this.sendRaw({ action: 'subscribe', channel: ch });
+        }
+      });
+      // pendingSubscriptions：在连接打开前调用的 subscribe() 也补发
       this.pendingSubscriptions.forEach((ch) =>
         this.sendRaw({ action: 'subscribe', channel: ch }),
       );
@@ -85,13 +102,22 @@ class WebSocketClient {
       this.stopHeartbeat();
       if (this.explicitlyClosed) {
         this.dispatch(setStatus('closed'));
-      } else {
-        this.dispatch(setReconnecting());
+        return;
       }
       if (ev.code === 1008 || ev.code === 4001) {
-        // 鉴权失败 / token 过期：关闭且不重试
-        this.rws?.close(1000, 'auth failed');
+        // 鉴权失败 / token 过期（若后端在 WS 层显式下发）：
+        // 停止重连并记录错误。注意：当前后端鉴权失败发生在 HTTP 握手阶段，
+        // 浏览器只会给 close code 1006，此分支作为后端未来显式下发时的兜底。
+        this.dispatch(setLastError(`WebSocket 鉴权失败 (close code ${ev.code})，已停止重连`));
+        try {
+          // close() 会置 _shouldReconnect=false 并取消 pending 的重连任务
+          this.rws?.close(1000, 'auth failed');
+        } catch {
+          // ignore
+        }
+        return;
       }
+      this.dispatch(setReconnecting());
     };
 
     this.rws.onerror = () => {
@@ -159,6 +185,10 @@ class WebSocketClient {
     this.pendingSubscriptions.delete(channel);
   }
 
+  getToken(): string {
+    return this.token;
+  }
+
   isClosed(): boolean {
     return this.explicitlyClosed;
   }
@@ -171,7 +201,9 @@ class WebSocketClient {
     this.explicitlyClosed = true;
     this.stopHeartbeat();
     this.pendingSubscriptions.clear();
-    this.dispatch(clearSubscriptions());
+    // 注意：不在这里清 Redux subscriptions / channelRefs。
+    // token 刷新场景会重建连接并在 onopen 时按 channelRefs 恢复订阅；
+    // 登出场景由 useWebSocketLifecycle 显式调用 resetChannelRefs + resetWS。
     try {
       this.rws?.close(1000, 'client close');
     } catch {
@@ -200,11 +232,13 @@ class WebSocketClient {
 // ---------- 单例管理 ----------
 
 export function connectWebSocket(token: string): WebSocketClient {
-  if (instance && !instance.isClosed()) {
-    // 已连接：如果 token 变了则重连，否则直接返回
+  if (instance && !instance.isClosed() && instance.getToken() === token) {
+    // 已连接且 token 未变：复用
     return instance;
   }
-  if (instance && instance.isClosed()) {
+  if (instance) {
+    // token 变化或旧实例已显式关闭：销毁重建（订阅由 channelRefs 恢复）
+    instance.close();
     instance = null;
   }
   instance = new WebSocketClient({ token });
@@ -222,12 +256,33 @@ export function disconnectWebSocket(): void {
   }
 }
 
+// ---------- 带引用计数的订阅管理 ----------
+
 export function subscribeChannel(channel: string): void {
-  instance?.subscribe(channel);
+  if (!channel) return;
+  const next = (channelRefs.get(channel) ?? 0) + 1;
+  channelRefs.set(channel, next);
+  if (next === 1) {
+    // 首个订阅者才真正建立订阅（重复 subscribe 由后端 channels map 天然去重，
+    // 但引用计数可避免"一个组件卸载导致其他组件断流"）
+    instance?.subscribe(channel);
+  }
 }
 
 export function unsubscribeChannel(channel: string): void {
-  instance?.unsubscribe(channel);
+  if (!channel) return;
+  const cur = channelRefs.get(channel) ?? 0;
+  if (cur <= 1) {
+    channelRefs.delete(channel);
+    instance?.unsubscribe(channel);
+  } else {
+    channelRefs.set(channel, cur - 1);
+  }
+}
+
+/** 清空 channel 引用计数（登出时调用，避免下次登录继承旧订阅） */
+export function resetChannelRefs(): void {
+  channelRefs.clear();
 }
 
 export type { WSConnectionStatus };
