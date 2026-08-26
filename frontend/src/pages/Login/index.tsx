@@ -4,7 +4,7 @@ import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { message } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '@/app/store';
-import { login } from '@/slices/userSlice';
+import { login, fetchCurrentUser } from '@/slices/userSlice';
 import { setDispatch } from '@/app/services/request';
 
 type LoginParams = {
@@ -31,12 +31,17 @@ const Login: React.FC = () => {
           password: values.password,
         }),
       ).unwrap();
+      // 登录响应仅含 UserBrief（无 perms），跳转前先拉取当前用户与权限点，
+      // 保证进入首页后菜单/按钮权限立即可用；失败不阻塞跳转（BasicLayout 会兜底重拉）
+      try {
+        await dispatch(fetchCurrentUser()).unwrap();
+      } catch {
+        // ignore：/auth/me 失败由拦截器提示
+      }
       message.success('登录成功');
-      setTimeout(() => {
-        navigate(redirect, { replace: true });
-      }, 300);
-    } catch (e) {
-      // error already handled in request interceptor
+      navigate(redirect, { replace: true });
+    } catch {
+      // 错误已由 request.ts 拦截器统一 toast（含登录 401 的账号密码错误提示）
     }
   };
 

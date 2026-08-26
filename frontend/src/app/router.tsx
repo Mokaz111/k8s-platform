@@ -1,5 +1,5 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import NProgress from 'nprogress';
+import React from 'react';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import BasicLayout from '@/layouts/BasicLayout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/dashboard';
@@ -15,38 +15,51 @@ import AuditLogList from '@/pages/audit/list';
 import UserList from '@/pages/users/list';
 import RoleList from '@/pages/roles/list';
 import HelmList from '@/pages/helm/list';
-import { store } from '@/app/store';
+import { useAppSelector } from '@/app/store';
 
-const authGuard = () => {
-  NProgress.start();
-  setTimeout(() => NProgress.done(), 200);
-  const token = store.getState().user.token;
+/**
+ * 路由鉴权守卫：未登录跳转登录页并携带回跳地址。
+ * 注意：react-router v6 的 loader 返回 JSX 不会被渲染，守卫必须用包装组件实现。
+ */
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = useAppSelector((state) => state.user.token);
+  const location = useLocation();
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
+        replace
+      />
+    );
   }
-  return null;
+  return <>{children}</>;
 };
 
-const loginGuard = () => {
-  NProgress.start();
-  setTimeout(() => NProgress.done(), 200);
-  const token = store.getState().user.token;
+// 已登录用户访问 /login 时重定向到首页
+const RedirectIfAuthed: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = useAppSelector((state) => state.user.token);
   if (token) {
     return <Navigate to="/" replace />;
   }
-  return null;
+  return <>{children}</>;
 };
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
-    loader: loginGuard,
+    element: (
+      <RedirectIfAuthed>
+        <Login />
+      </RedirectIfAuthed>
+    ),
   },
   {
     path: '/',
-    element: <BasicLayout />,
-    loader: authGuard,
+    element: (
+      <RequireAuth>
+        <BasicLayout />
+      </RequireAuth>
+    ),
     children: [
       {
         index: true,

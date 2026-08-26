@@ -19,7 +19,7 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { logout } from '@/slices/userSlice';
+import { logout, fetchCurrentUser } from '@/slices/userSlice';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { selectWSStatus } from '@/slices/wsSlice';
 import { useListClustersQuery } from '@/app/services/cluster';
@@ -127,6 +127,14 @@ const BasicLayout: React.FC = () => {
 
   // WebSocket 全局连接生命周期：token 存在时自动建立连接
   useWebSocketLifecycle();
+
+  // 有 token 但无用户信息（如刷新页面/StrictMode 重挂）时自动补拉当前用户与权限点，
+  // 否则权限过滤会把所有菜单隐藏、hasPerm 全部失效
+  useEffect(() => {
+    if (token && !currentUser) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [token, currentUser, dispatch]);
 
   const { data, isLoading } = useListClustersQuery(undefined, {
     skip: !token,

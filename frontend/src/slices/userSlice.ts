@@ -33,11 +33,19 @@ export interface CurrentUser {
 
 export interface UserState {
   token: string | null;
+  refreshToken: string | null;
   currentUser: CurrentUser | null;
 }
 
+// 防御历史 bug 写入的脏值 "undefined"（旧版本曾以错误字段名存入 undefined）
+const readStoredToken = (key: string): string | null => {
+  const v = localStorage.getItem(key);
+  return v && v !== 'undefined' && v !== 'null' ? v : null;
+};
+
 const initialState: UserState = {
-  token: localStorage.getItem('token'),
+  token: readStoredToken('token'),
+  refreshToken: readStoredToken('refresh_token'),
   currentUser: null,
 };
 
@@ -54,9 +62,12 @@ interface LoginParams {
   password: string;
 }
 
+// 与后端 auth.LoginResult 对齐：access_token / refresh_token / token_type / expires_in / user
 interface LoginResponse {
-  token: string;
+  access_token: string;
   refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
   user?: CurrentUser;
 }
 
@@ -79,33 +90,41 @@ export const fetchCurrentUser = createAsyncThunk<
   return res.data.data;
 });
 
+const persistToken = (key: string, value: string | null) => {
+  if (value) {
+    localStorage.setItem(key, value);
+  } else {
+    localStorage.removeItem(key);
+  }
+};
+
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
     setToken(state, action: PayloadAction<string | null>) {
       state.token = action.payload;
-      if (action.payload) {
-        localStorage.setItem('token', action.payload);
-      } else {
-        localStorage.removeItem('token');
-      }
+      persistToken('token', action.payload);
     },
     setCurrentUser(state, action: PayloadAction<CurrentUser | null>) {
       state.currentUser = action.payload;
     },
     logout(state) {
       state.token = null;
+      state.refreshToken = null;
       state.currentUser = null;
       localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(login.fulfilled, (state, action) => {
-        state.token = action.payload.token;
-        localStorage.setItem('token', action.payload.token);
-        // 后端登录响应可能不包含 user 详情，则保留 null，由 fetchCurrentUser 补全
+        state.token = action.payload.access_token;
+        state.refreshToken = action.payload.refresh_token ?? null;
+        persistToken('token', state.token);
+        persistToken('refresh_token', state.refreshToken);
+        // 登录响应仅含 UserBrief（无 perms），完整信息由 fetchCurrentUser 补全
         if (action.payload.user) {
           state.currentUser = action.payload.user;
         }
