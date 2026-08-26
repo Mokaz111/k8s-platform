@@ -44,10 +44,11 @@ const { Text } = Typography;
 
 const RoleList: React.FC = () => {
   const { hasPerm } = usePermission();
-  const canView = hasPerm('role:view');
-  const canCreate = hasPerm('role:create');
-  const canUpdate = hasPerm('role:update');
-  const canDelete = hasPerm('role:delete');
+  // 后端角色相关接口统一要求 role:manage（见 middleware/auth.go），无细分权限点
+  const canView = hasPerm('role:manage');
+  const canCreate = hasPerm('role:manage');
+  const canUpdate = hasPerm('role:manage');
+  const canDelete = hasPerm('role:manage');
 
   const [filters, setFilters] = useState<ListRolesParams>({
     page: 1,
@@ -277,7 +278,7 @@ const RoleList: React.FC = () => {
     return (
       <PageContainer>
         <Card>
-          <Text type="warning">您没有查看角色列表的权限（role:view）。</Text>
+          <Text type="warning">您没有查看角色列表的权限（role:manage）。</Text>
         </Card>
       </PageContainer>
     );
@@ -402,7 +403,7 @@ const RolePermissionsDrawer: React.FC<{ role: Role; onClose: () => void }> = ({
   onClose,
 }) => {
   const { hasPerm } = usePermission();
-  const canSet = hasPerm('role:assign_perm');
+  const canSet = hasPerm('role:manage');
 
   const { data: allPerms, isFetching: permsFetching } = useListPermissionsQuery();
   const { data: rolePerms, isFetching: rolePermsFetching } = useGetRolePermissionsQuery(role.id);

@@ -67,7 +67,7 @@ interface FilterFormValues {
 
 const AuditLogList: React.FC = () => {
   const { hasPerm } = usePermission();
-  const canView = hasPerm('audit:view');
+  const canView = hasPerm('audit:list');
 
   const [filters, setFilters] = useState<ListAuditLogsParams>({
     page: 1,
@@ -282,7 +282,7 @@ const AuditLogList: React.FC = () => {
     return (
       <PageContainer>
         <Card>
-          <Text type="warning">您没有查看审计日志的权限（audit:view）。</Text>
+          <Text type="warning">您没有查看审计日志的权限（audit:list）。</Text>
         </Card>
       </PageContainer>
     );

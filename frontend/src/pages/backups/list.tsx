@@ -85,10 +85,12 @@ const BackupList: React.FC = () => {
   const [searchParams] = useSearchParams();
   const codeParam = searchParams.get('code') || undefined;
   const { hasPerm } = usePermission();
-  const canView = hasPerm('backup:view') || hasPerm('backup:list') || hasPerm('backup:get');
+  // 权限码与后端 seed 及 routes_backup.go 对齐：
+  // 查看与下载接口均要求 backup:list（无独立 backup:view/backup:download 权限点）
+  const canView = hasPerm('backup:list');
   const canCreate = hasPerm('backup:create');
   const canRestore = hasPerm('backup:restore');
-  const canDownload = hasPerm('backup:download');
+  const canDownload = hasPerm('backup:list');
   const canDelete = hasPerm('backup:delete');
 
   // 集群列表，用于恢复表单的目标集群下拉

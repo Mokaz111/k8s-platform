@@ -28,30 +28,30 @@ import { usePermission } from '@/hooks/usePermission';
 
 // 菜单路由的权限配置：route path -> 所需权限点（任一满足即可显示）
 // 没有配置 perm 的菜单默认对所有登录用户显示
+// 注意：权限码必须与后端 models/seed.go 的 seedPermissionsData 完全一致，
+// 否则普通角色（cluster-admin / platform-viewer 等）菜单会被全部隐藏
 const MENU_PERM_MAP: Record<string, string[]> = {
-  '/dashboard': ['dashboard:view'],
+  // 概览：后端无 dashboard 权限点，对所有登录用户开放
   // 集群管理：只要有任何 cluster 相关权限就显示分组
-  '/clusters': ['cluster:view', 'cluster:create', 'cluster:import', 'cluster:update', 'cluster:delete'],
-  '/clusters/list': ['cluster:view'],
-  '/clusters/import': ['cluster:create', 'cluster:import'],
+  '/clusters': ['cluster:list', 'cluster:create', 'cluster:update', 'cluster:delete', 'cluster:ping'],
+  '/clusters/list': ['cluster:list'],
+  '/clusters/import': ['cluster:create'],
   // 资源管理
-  '/resources': ['resource:view', 'resource:edit', 'resource:delete'],
-  '/resources/list': ['resource:view'],
-  '/resources/quota': ['resource:view'],
+  '/resources': ['resource:list', 'resource:get', 'resource:create', 'resource:update', 'resource:delete'],
+  '/resources/list': ['resource:list'],
+  '/resources/quota': ['resource:list'],
   // 备份管理
-  '/backups': ['backup:view', 'backup:create', 'backup:restore', 'backup:download', 'backup:delete'],
-  '/backups/list': ['backup:view'],
+  '/backups': ['backup:list', 'backup:create', 'backup:restore', 'backup:delete'],
+  '/backups/list': ['backup:list'],
   '/backups/create': ['backup:create'],
-  // 运维工具
-  '/pods': ['pod:logs', 'pod:exec'],
-  '/pods/logs': ['pod:logs'],
+  // 运维工具（Pod 日志）：后端无独立权限点，访问控制由 RequireNamespaceScope 数据范围校验
   // 权限管理
-  '/rbac': ['user:view', 'user:create', 'role:view', 'role:create'],
-  '/rbac/users': ['user:view', 'user:create', 'user:update', 'user:delete'],
-  '/rbac/roles': ['role:view', 'role:create', 'role:update', 'role:delete'],
+  '/rbac': ['user:manage', 'role:manage'],
+  '/rbac/users': ['user:manage'],
+  '/rbac/roles': ['role:manage'],
   // 审计日志
-  '/audit': ['audit:view'],
-  '/audit/list': ['audit:view'],
+  '/audit': ['audit:list'],
+  '/audit/list': ['audit:list'],
   // Helm 应用管理
   '/helm': ['helm:view', 'helm:install', 'helm:uninstall', 'helm:rollback'],
   '/helm/list': ['helm:view'],

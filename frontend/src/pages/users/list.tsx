@@ -69,9 +69,10 @@ const scopeLabelMap: Record<ScopeType, string> = {
 
 const UserList: React.FC = () => {
   const { hasPerm } = usePermission();
-  const canView = hasPerm('user:view');
-  const canCreate = hasPerm('user:create');
-  const canUpdate = hasPerm('user:update');
+  // 后端用户相关接口统一要求 user:manage（见 middleware/auth.go），无细分权限点
+  const canView = hasPerm('user:manage');
+  const canCreate = hasPerm('user:manage');
+  const canUpdate = hasPerm('user:manage');
 
   const [filters, setFilters] = useState<ListUsersParams>({
     page: 1,
@@ -326,7 +327,7 @@ const UserList: React.FC = () => {
     return (
       <PageContainer>
         <Card>
-          <Text type="warning">您没有查看用户列表的权限（user:view）。</Text>
+          <Text type="warning">您没有查看用户列表的权限（user:manage）。</Text>
         </Card>
       </PageContainer>
     );
@@ -477,7 +478,7 @@ const UserRolesDrawer: React.FC<{ user: User; onClose: () => void }> = ({
   onClose,
 }) => {
   const { hasPerm } = usePermission();
-  const canBind = hasPerm('user:bind_role');
+  const canBind = hasPerm('user:manage');
 
   const { data: userRoles, isFetching: rolesFetching } = useListUserRolesQuery(user.id);
   const { data: rolesData } = useListRolesQuery({ page: 1, page_size: 200 });
