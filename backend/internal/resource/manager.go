@@ -51,7 +51,11 @@ var MVP_GVKs = []schema.GroupVersionKind{
 
 func (m *Manager) IsNamespaced(gvk schema.GroupVersionKind) bool {
 	switch gvk.Kind {
-	case "PersistentVolume", "StorageClass", "Namespace", "Node":
+	// 集群级资源：走带 namespace 的 REST 路径查询会 404
+	case "PersistentVolume", "StorageClass", "Namespace", "Node", "VolumeAttachment", "ClusterRole",
+		"ClusterRoleBinding", "ClusterIssuer", "CustomResourceDefinition", "APIService", "PriorityClass",
+		"RuntimeClass", "IngressClass", "CSIDriver", "CSINode", "MutatingWebhookConfiguration",
+		"ValidatingWebhookConfiguration", "ComponentStatus":
 		return false
 	default:
 		return true

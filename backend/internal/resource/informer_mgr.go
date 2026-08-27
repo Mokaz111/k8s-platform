@@ -11,6 +11,7 @@ import (
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/logger"
 	"golang.org/x/time/rate"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -217,28 +218,14 @@ func (im *InformerManager) buildListWatch(dynCli dynamic.Interface, gvr schema.G
 }
 
 func gvkToGVR(gvk schema.GroupVersionKind) schema.GroupVersionResource {
-	kindToResource := map[string]string{
-		"Deployment":            "deployments",
-		"StatefulSet":           "statefulsets",
-		"DaemonSet":             "daemonsets",
-		"Job":                   "jobs",
-		"CronJob":               "cronjobs",
-		"ConfigMap":             "configmaps",
-		"Secret":                "secrets",
-		"PersistentVolume":      "persistentvolumes",
-		"PersistentVolumeClaim": "persistentvolumeclaims",
-		"StorageClass":          "storageclasses",
-		"Pod":                   "pods",
-		"Service":               "services",
-		"Namespace":             "namespaces",
-		"Node":                  "nodes",
-		"Ingress":               "ingresses",
-	}
-	resource, ok := kindToResource[gvk.Kind]
-	if !ok {
-		resource = gvk.Kind + "s"
-	}
-	return gvk.GroupVersion().WithResource(resource)
+	// 使用 apimachinery 的标准猜算规则做 GVK→GVR 转换：
+	// - 自动小写（API server 资源路径全是小写，如 ServiceAccount→serviceaccounts）
+	// - 正确复数（NetworkPolicy→networkpolicies）
+	// - 处理已复数的不规则 Kind（Endpoints→endpoints，内置 irregular 表）
+	// 原实现是 Kind+"s" 兜底，对 Endpoints 会生成 "Endpointss"，
+	// 对 NetworkPolicy 生成 "NetworkPolicys"，导致 apiserver 404。
+	plural, _ := meta.UnsafeGuessKindToResource(gvk)
+	return plural
 }
 
 func (im *InformerManager) StartInformer(clusterCode string, gvk schema.GroupVersionKind) (cache.SharedIndexInformer, error) {
