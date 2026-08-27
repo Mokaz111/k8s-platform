@@ -13,7 +13,7 @@ import {
 } from 'antd';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
-import Editor, { loader } from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import {
   CloudServerOutlined,
@@ -40,14 +40,10 @@ import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
 import { PodLogsViewer } from '@/components/ws';
+// 本地 Monaco 加载配置（替代 CDN，离线环境可用）
+import '@/app/monaco';
 
 dayjs.extend(relativeTime);
-
-loader.config({
-  paths: {
-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs',
-  },
-});
 
 type ResourceTab = 'workload' | 'network' | 'config' | 'storage';
 

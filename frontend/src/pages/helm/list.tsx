@@ -16,6 +16,8 @@ import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import Editor from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+// 本地 Monaco 加载配置（替代 CDN，离线环境可用）
+import '@/app/monaco';
 import {
   DeleteOutlined,
   HistoryOutlined,

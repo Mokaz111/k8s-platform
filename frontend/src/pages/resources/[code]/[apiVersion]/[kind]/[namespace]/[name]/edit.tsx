@@ -26,8 +26,9 @@ import {
   message,
 } from 'antd';
 import { PageContainer } from '@ant-design/pro-components';
-import Editor, { DiffEditor, loader } from '@monaco-editor/react';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import { dump as yamlDump, load as yamlLoad } from 'js-yaml';
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
@@ -52,12 +53,8 @@ import {
 } from '@/app/services/version';
 import { useAppDispatch } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
-
-loader.config({
-  paths: {
-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs',
-  },
-});
+// 本地 Monaco 加载配置（替代 CDN，离线环境可用）
+import '@/app/monaco';
 
 interface EditPageParams {
   code: string;
@@ -70,22 +67,18 @@ interface EditPageParams {
 const yamlStringify = (obj: unknown): string => {
   if (typeof obj === 'string') return obj;
   try {
-    const YAML = (window as unknown as { jsyaml?: { dump: (o: unknown) => string } }).jsyaml;
-    if (YAML?.dump) return YAML.dump(obj);
+    return yamlDump(obj);
   } catch {
-    // ignore
+    return JSON.stringify(obj, null, 2);
   }
-  return JSON.stringify(obj, null, 2);
 };
 
 const tryParseYaml = (text: string): unknown | null => {
   try {
-    const YAML = (window as unknown as { jsyaml?: { load: (t: string) => unknown } }).jsyaml;
-    if (YAML?.load) return YAML.load(text);
+    return yamlLoad(text);
   } catch {
-    // ignore
+    return null;
   }
-  return null;
 };
 
 const ResourceEdit: React.FC = () => {

@@ -26,6 +26,8 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import Editor from '@monaco-editor/react';
+// 本地 Monaco 加载配置（替代 CDN，离线环境可用）
+import '@/app/monaco';
 import {
   KubernetesResource,
   useCreateResourceMutation,
