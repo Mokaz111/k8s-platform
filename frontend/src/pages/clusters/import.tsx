@@ -58,9 +58,13 @@ const ClusterImport: React.FC = () => {
   const [importCluster, { isLoading: importLoading }] = useImportClusterMutation();
   const [tempPing] = useTempPingMutation();
 
-  const extractKubeconfig = async (values: ImportFormValues): Promise<string | undefined> => {
+  // 注意：必须用 getFieldValue 直接读取，不能依赖 validateFields(['name','code'])
+  // 的返回值——antd 指定字段列表时返回对象只包含那些字段，kubeconfig 永远是 undefined，
+  // 曾导致"测试连接/导入"永远提示『请提供 Kubeconfig 内容』
+  const extractKubeconfig = (): string | undefined => {
     if (mode === 'text') {
-      return values.kubeconfig;
+      const v = form.getFieldValue('kubeconfig');
+      return typeof v === 'string' && v.trim().length > 0 ? v : undefined;
     }
     return fileContentRef.current || undefined;
   };
@@ -68,7 +72,11 @@ const ClusterImport: React.FC = () => {
   const readFileAsText = (file: RcFile): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onload = () => {
+        // 去除 UTF-8 BOM：否则后端 yaml 解析可能失败
+        const text = String(reader.result || '').replace(/^\uFEFF/, '');
+        resolve(text);
+      };
       reader.onerror = reject;
       reader.readAsText(file);
     });
@@ -92,10 +100,16 @@ const ClusterImport: React.FC = () => {
     return false;
   };
 
+  // 从 RTK Query unwrap 抛出的错误中提取后端返回的 message（errcode 响应体）
+  const extractErrorMessage = (err: unknown): string => {
+    const e = err as { data?: { message?: string; msg?: string }; message?: string };
+    return e?.data?.message || e?.data?.msg || e?.message || '连接请求失败';
+  };
+
   const handleTestConnection = async () => {
     try {
-      const values = await form.validateFields(['name', 'code']);
-      const kc = await extractKubeconfig(values);
+      await form.validateFields(['name', 'code']);
+      const kc = extractKubeconfig();
       if (!kc) {
         message.error('请提供 Kubeconfig 内容');
         return;
@@ -107,8 +121,9 @@ const ClusterImport: React.FC = () => {
       const info = `${res.server_version || '未知版本'} · 节点 ${res.node_count ?? '-'} · ${res.cost_ms}ms`;
       setPingResult({ success: true, message: info });
       message.success('连接成功');
-    } catch {
-      setPingResult({ success: false, message: '连接请求失败' });
+    } catch (err) {
+      // 展示后端真实原因（证书无效 / 无法连接 apiserver 等），便于排查
+      setPingResult({ success: false, message: extractErrorMessage(err) });
     } finally {
       setPingLoading(false);
     }
@@ -116,7 +131,7 @@ const ClusterImport: React.FC = () => {
 
   const handleSubmit = async (values: ImportFormValues) => {
     try {
-      const kc = await extractKubeconfig(values);
+      const kc = extractKubeconfig();
       if (!kc) {
         message.error('请提供 Kubeconfig 内容');
         return;
