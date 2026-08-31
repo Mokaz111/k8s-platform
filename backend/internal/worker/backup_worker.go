@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -116,7 +117,8 @@ func (w *BackupWorker) Start(ctx context.Context) error {
 			for _, msg := range s.Messages {
 				w.log.Debugf("BackupWorker got msg: id=%s values=%v", msg.ID, msg.Values)
 				if handleErr := w.handleStreamMsg(ctx, msg); handleErr != nil {
-					w.log.Errorf("handle stream msg %s failed: %v", msg.ID, handleErr)
+					w.log.Errorf("handle stream msg %s failed (not ACK): %v", msg.ID, handleErr)
+					continue
 				}
 				if ackErr := w.redis.XAck(ctx, backup.StreamKeyBackupTasks, consumerGroup, msg.ID).Err(); ackErr != nil {
 					w.log.Warnf("XAck %s failed: %v", msg.ID, ackErr)
@@ -152,7 +154,8 @@ func (w *BackupWorker) tryAutoClaim(ctx context.Context) {
 		for _, msg := range res {
 			w.log.Infof("AutoClaim msg: id=%s values=%v", msg.ID, msg.Values)
 			if err := w.handleStreamMsg(ctx, msg); err != nil {
-				w.log.Errorf("AutoClaim handle msg %s failed: %v", msg.ID, err)
+				w.log.Errorf("AutoClaim handle msg %s failed (not ACK): %v", msg.ID, err)
+				continue
 			}
 			if err := w.redis.XAck(ctx, backup.StreamKeyBackupTasks, consumerGroup, msg.ID).Err(); err != nil {
 				w.log.Warnf("AutoClaim XAck %s failed: %v", msg.ID, err)
@@ -166,38 +169,24 @@ func (w *BackupWorker) handleStreamMsg(ctx context.Context, msg redis.XMessage) 
 	taskIDStr, _ := msg.Values["task_id"].(string)
 	taskType, _ := msg.Values["task_type"].(string)
 	if taskIDStr == "" {
-		return fmt.Errorf("task_id missing in msg %s", msg.ID)
+		w.log.Errorf("task_id missing in msg %s, drop", msg.ID)
+		return nil
 	}
 	taskID, err := strconv.ParseUint(taskIDStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("parse task_id %q: %w", taskIDStr, err)
+		w.log.Errorf("parse task_id %q in msg %s, drop: %v", taskIDStr, msg.ID, err)
+		return nil
 	}
 	return w.HandleTask(ctx, taskID, taskType)
-}
-
-type dynClient interface {
-	Resource(gvr schema.GroupVersionResource) namespaceableResource
-}
-type namespaceableResource interface {
-	Namespace(string) namespacedClient
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*unstructured.Unstructured, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error)
-}
-type namespacedClient interface {
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*unstructured.Unstructured, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error)
-}
-
-// dynamicClientWrap 包装 DynamicClient（无接口依赖），用于让 doBackupSingle 更方便地测 namespaceableResource
-type dynamicClientWrap struct {
-	dyn interface {
-		Resource(gvr schema.GroupVersionResource) namespaceableResource
-	}
 }
 
 func (w *BackupWorker) HandleTask(ctx context.Context, taskID uint64, taskType string) error {
 	var task models.BackupTask
 	if err := w.db.WithContext(ctx).Where("id = ?", taskID).First(&task).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.log.Warnf("task %d not found, drop", taskID)
+			return nil
+		}
 		return fmt.Errorf("load task %d: %w", taskID, err)
 	}
 
@@ -207,12 +196,20 @@ func (w *BackupWorker) HandleTask(ctx context.Context, taskID uint64, taskType s
 	}
 
 	now := time.Now()
-	if err := w.db.Model(&models.BackupTask{}).Where("id = ?", taskID).Updates(map[string]interface{}{
-		"status":     models.BackupStatusRunning,
-		"started_at": &now,
-	}).Error; err != nil {
-		w.log.Warnf("mark running failed: %v", err)
+	res := w.db.WithContext(ctx).Model(&models.BackupTask{}).
+		Where("id = ? AND status = ?", taskID, models.BackupStatusPending).
+		Updates(map[string]interface{}{
+			"status":     models.BackupStatusRunning,
+			"started_at": &now,
+		})
+	if res.Error != nil {
+		return fmt.Errorf("cas claim task %d: %w", taskID, res.Error)
 	}
+	if res.RowsAffected != 1 {
+		w.log.Infof("task %d not claimed (already taken), skip", taskID)
+		return nil
+	}
+	task.Status = models.BackupStatusRunning
 
 	// 记录活跃 task，便于 publishProgress 从 taskID 反查完整元信息
 	w.activeTasks.Store(taskID, &activeTaskRecord{task: &task, taskType: taskType})
@@ -249,7 +246,7 @@ func (w *BackupWorker) HandleTask(ctx context.Context, taskID uint64, taskType s
 		})
 		w.publishProgressWithError(ctx, taskID, 100, string(models.BackupStatusFailed), "任务失败", execErr.Error())
 		w.log.Errorf("❌ task %d (%s) failed: %v", taskID, taskType, execErr)
-		return nil
+		return execErr
 	}
 
 	w.publishProgress(ctx, taskID, 100, string(models.BackupStatusSuccess), "任务完成")
@@ -379,9 +376,6 @@ func (w *BackupWorker) doBackupSingle(ctx context.Context, task *models.BackupTa
 	if dynErr != nil {
 		return fmt.Errorf("get cluster client: %w", dynErr)
 	}
-	dynCli := &dynamicClientWrap{dyn: dyn.(interface {
-		Resource(gvr schema.GroupVersionResource) namespaceableResource
-	})}
 	if task.TargetKind == nil || task.TargetName == nil {
 		return errcode.New(errcode.InvalidArgument, "target_kind/target_name missing")
 	}
@@ -401,9 +395,9 @@ func (w *BackupWorker) doBackupSingle(ctx context.Context, task *models.BackupTa
 	var count int
 
 	if ns != "" {
-		obj, err = dynCli.dyn.Resource(gvr).Namespace(ns).Get(ctx, *task.TargetName, metav1.GetOptions{})
+		obj, err = dyn.Resource(gvr).Namespace(ns).Get(ctx, *task.TargetName, metav1.GetOptions{})
 	} else {
-		obj, err = dynCli.dyn.Resource(gvr).Get(ctx, *task.TargetName, metav1.GetOptions{})
+		obj, err = dyn.Resource(gvr).Get(ctx, *task.TargetName, metav1.GetOptions{})
 	}
 	if err != nil {
 		return fmt.Errorf("get resource %s/%s: %w", *task.TargetKind, *task.TargetName, err)
@@ -478,9 +472,6 @@ func (w *BackupWorker) doBackupNamespaceBatch(ctx context.Context, task *models.
 	if dynErr != nil {
 		return fmt.Errorf("get cluster client: %w", dynErr)
 	}
-	dynCli := &dynamicClientWrap{dyn: dyn.(interface {
-		Resource(gvr schema.GroupVersionResource) namespaceableResource
-	})}
 	stor, err := w.plugins.GetStorage(task.StorageType)
 	if err != nil {
 		return fmt.Errorf("get storage %s: %w", task.StorageType, err)
@@ -525,9 +516,9 @@ func (w *BackupWorker) doBackupNamespaceBatch(ctx context.Context, task *models.
 			// 区分集群级资源（Namespace）—— 没有 Namespace 层，且 ns 为 "" 时直接全局 List
 			isClusterScoped := !isNamespacedKind(kind)
 			if isClusterScoped {
-				ulist, lerr = dynCli.dyn.Resource(gvr).List(ctx, metav1.ListOptions{Limit: 500})
+				ulist, lerr = dyn.Resource(gvr).List(ctx, metav1.ListOptions{Limit: 500})
 			} else {
-				ulist, lerr = dynCli.dyn.Resource(gvr).Namespace(ns).List(ctx, metav1.ListOptions{Limit: 500})
+				ulist, lerr = dyn.Resource(gvr).Namespace(ns).List(ctx, metav1.ListOptions{Limit: 500})
 			}
 			if lerr != nil {
 				w.log.Warnf("list %s ns=%s failed: %v", kind, ns, lerr)
@@ -554,7 +545,7 @@ func (w *BackupWorker) doBackupNamespaceBatch(ctx context.Context, task *models.
 			"error_message": &msg,
 		})
 		w.publishProgressWithError(ctx, task.ID, 100, string(models.BackupStatusFailed), "任务失败", msg)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	// 第二阶段：逐个对象 Get → YAML → Upload
@@ -563,9 +554,9 @@ func (w *BackupWorker) doBackupNamespaceBatch(ctx context.Context, task *models.
 		var obj *unstructured.Unstructured
 		var gerr error
 		if !isNamespacedKind(it.Kind) {
-			obj, gerr = dynCli.dyn.Resource(gvr).Get(ctx, it.Name, metav1.GetOptions{})
+			obj, gerr = dyn.Resource(gvr).Get(ctx, it.Name, metav1.GetOptions{})
 		} else {
-			obj, gerr = dynCli.dyn.Resource(gvr).Namespace(it.NS).Get(ctx, it.Name, metav1.GetOptions{})
+			obj, gerr = dyn.Resource(gvr).Namespace(it.NS).Get(ctx, it.Name, metav1.GetOptions{})
 		}
 		if gerr != nil {
 			w.log.Warnf("get %s/%s/%s: %v", it.Kind, it.NS, it.Name, gerr)
@@ -604,22 +595,24 @@ func (w *BackupWorker) doBackupNamespaceBatch(ctx context.Context, task *models.
 			"object_count":  0,
 			"completed_at":  &now,
 		})
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
-	// 写完成记录：
-	//  批量备份 DB.StoragePath 存“目录前缀”（cluster/YYYYMMDD/backup_id-），
-	//  让下载/恢复后续可以用批量任务子表，当前版本只保留第一条 item 的 storage_path 便于 UI 展示"已落盘"。
+	// 批量备份 DB.StoragePath 存对象前缀 cluster/YYYYMMDD/{taskID}-，删除时按前缀枚举。
 	now := time.Now()
 	summaryMsg := fmt.Sprintf("批量完成：成功 %d，失败 %d，总对象 %d", doneItems, failedItems, totalItems)
 	objectCount := int(doneItems)
+	storagePath := backup.BatchObjectPrefix(task.ID, lastStorage)
+	if storagePath == "" {
+		storagePath = lastStorage
+	}
 	updates := map[string]interface{}{
-		"status":       models.BackupStatusSuccess,
-		"size_bytes":   &totalSize,
-		"object_count": objectCount,
-		"storage_path": lastStorage,
+		"status":        models.BackupStatusSuccess,
+		"size_bytes":    &totalSize,
+		"object_count":  objectCount,
+		"storage_path":  storagePath,
 		"error_message": &summaryMsg,
-		"completed_at": &now,
+		"completed_at":  &now,
 	}
 	if err := w.db.Model(&models.BackupTask{}).Where("id = ?", task.ID).Updates(updates).Error; err != nil {
 		return fmt.Errorf("update backup result: %w", err)
@@ -642,6 +635,9 @@ func (w *BackupWorker) doRestore(ctx context.Context, task *models.BackupTask) e
 
 	if task.StoragePath == "" {
 		return fmt.Errorf("storage_path empty, backup not usable")
+	}
+	if strings.HasSuffix(strings.ReplaceAll(task.StoragePath, "\\", "/"), "-") {
+		return fmt.Errorf("批量备份暂不支持恢复")
 	}
 
 	stor, err := w.plugins.GetStorage(task.StorageType)
@@ -693,44 +689,17 @@ func (w *BackupWorker) doRestore(ctx context.Context, task *models.BackupTask) e
 	ns := obj.GetNamespace()
 	if task.Namespace != nil && *task.Namespace != "" {
 		ns = *task.Namespace
+		obj.SetNamespace(ns)
 	}
 
-	var resultObj *unstructured.Unstructured
+	mode := backup.RestoreMode(strings.TrimSpace(task.RestoreMode))
+	if mode == "" {
+		mode = backup.RestoreModeOverwrite
+	}
 	count := 1
-
-	type namespaceable = interface {
-		Namespace(string) interface {
-			Get(context.Context, string, metav1.GetOptions) (*unstructured.Unstructured, error)
-			Create(context.Context, *unstructured.Unstructured, metav1.CreateOptions) (*unstructured.Unstructured, error)
-			Update(context.Context, *unstructured.Unstructured, metav1.UpdateOptions) (*unstructured.Unstructured, error)
-		}
-		Get(context.Context, string, metav1.GetOptions) (*unstructured.Unstructured, error)
-		Create(context.Context, *unstructured.Unstructured, metav1.CreateOptions) (*unstructured.Unstructured, error)
-		Update(context.Context, *unstructured.Unstructured, metav1.UpdateOptions) (*unstructured.Unstructured, error)
-	}
-
-	_ = dynCli
-	if ns != "" {
-		existing, getErr := dynCli.Resource(gvr).Namespace(ns).Get(ctx, obj.GetName(), metav1.GetOptions{})
-		if getErr == nil && existing != nil {
-			obj.SetResourceVersion(existing.GetResourceVersion())
-			resultObj, err = dynCli.Resource(gvr).Namespace(ns).Update(ctx, &obj, metav1.UpdateOptions{})
-		} else {
-			resultObj, err = dynCli.Resource(gvr).Namespace(ns).Create(ctx, &obj, metav1.CreateOptions{})
-		}
-	} else {
-		existing, getErr := dynCli.Resource(gvr).Get(ctx, obj.GetName(), metav1.GetOptions{})
-		if getErr == nil && existing != nil {
-			obj.SetResourceVersion(existing.GetResourceVersion())
-			resultObj, err = dynCli.Resource(gvr).Update(ctx, &obj, metav1.UpdateOptions{})
-		} else {
-			resultObj, err = dynCli.Resource(gvr).Create(ctx, &obj, metav1.CreateOptions{})
-		}
-	}
-	if err != nil {
+	if err := applyRestoredObject(ctx, dynCli, gvr, ns, &obj, mode); err != nil {
 		return errcode.Wrap(errcode.BackupRestoreFail, err, "应用资源失败")
 	}
-	_ = resultObj
 
 	now := time.Now()
 	size := int64(len(data))

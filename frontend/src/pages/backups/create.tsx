@@ -21,13 +21,11 @@ import {
   PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  useListClustersQuery,
-} from '@/app/services/cluster';
-import { useListNamespacesQuery } from '@/app/services/resource';
+import { useListClustersQuery } from '@/app/services/cluster';
 import { CreateBackupBody, useCreateBackupMutation } from '@/app/services/backup';
 import type { Cluster } from '@/app/services/cluster';
 import { useAppSelector } from '@/app/store';
+import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 
 type BackupMode = 'object' | 'namespace' | 'namespace_batch';
 
@@ -85,11 +83,7 @@ const BackupCreate: React.FC = () => {
   const scopeValue = Form.useWatch('scope', form) as BackupMode | undefined;
   const kindValue = Form.useWatch('kind', form) as string | undefined;
 
-  const { data: namespaceData } = useListNamespacesQuery(codeValue || '', {
-    skip: !codeValue,
-    refetchOnMountOrArgChange: true,
-  });
-
+  const { namespaces: namespaceData } = useAllowedNamespaces(codeValue);
   const [createBackup, { isLoading }] = useCreateBackupMutation();
 
   const initialValues: CreateFormValues = {

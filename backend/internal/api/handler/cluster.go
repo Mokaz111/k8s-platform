@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k8s-platform/console/internal/api/middleware"
 	"github.com/k8s-platform/console/internal/cluster"
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/response"
@@ -56,7 +57,10 @@ func (h *ClusterHandler) ImportCluster(c *gin.Context) {
 		return
 	}
 
-	creatorID := getCurrentUserID(c)
+	creatorID, _, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	created, err := h.Mgr.ImportCluster(req.Name, req.Code, raw, creatorID)
 	if err != nil {
@@ -83,7 +87,14 @@ func (h *ClusterHandler) ListClusters(c *gin.Context) {
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "20"))
 	keyword := c.Query("keyword")
 
-	res, err := h.Mgr.List(page, size, keyword)
+	codes, isFull := middleware.AllowedClusters(c)
+	var res *cluster.ListResult
+	var err error
+	if isFull {
+		res, err = h.Mgr.List(page, size, keyword)
+	} else {
+		res, err = h.Mgr.ListInCodes(page, size, keyword, codes)
+	}
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
 			response.Fail(c, ec)
@@ -97,6 +108,10 @@ func (h *ClusterHandler) ListClusters(c *gin.Context) {
 
 func (h *ClusterHandler) GetCluster(c *gin.Context) {
 	code := c.Param("code")
+	if err := middleware.RequireAnyClusterAccess(c, code); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
 	item, err := h.Mgr.GetByCode(code)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
@@ -119,6 +134,10 @@ type updateClusterReq struct {
 
 func (h *ClusterHandler) UpdateCluster(c *gin.Context) {
 	code := c.Param("code")
+	if err := middleware.RequireClusterScope(c, code); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
 
 	var req updateClusterReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -147,7 +166,10 @@ func (h *ClusterHandler) UpdateCluster(c *gin.Context) {
 		in.LabelsJSON = &raw
 	}
 
-	operatorID := getCurrentUserID(c)
+	operatorID, _, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 	updated, err := h.Mgr.Update(code, in, operatorID)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
@@ -162,6 +184,10 @@ func (h *ClusterHandler) UpdateCluster(c *gin.Context) {
 
 func (h *ClusterHandler) DeleteCluster(c *gin.Context) {
 	code := c.Param("code")
+	if err := middleware.RequireClusterScope(c, code); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
 	if err := h.Mgr.Delete(code); err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
 			response.Fail(c, ec)
@@ -202,6 +228,11 @@ func (h *ClusterHandler) PingCluster(c *gin.Context) {
 		return
 	}
 
+	if err := middleware.RequireAnyClusterAccess(c, code); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+
 	result, err := h.Mgr.Ping(code)
 	if err != nil {
 		if ec, ok := err.(*errcode.Error); ok {
@@ -212,37 +243,4 @@ func (h *ClusterHandler) PingCluster(c *gin.Context) {
 		return
 	}
 	response.OK(c, result)
-}
-
-func getCurrentUserID(c *gin.Context) uint64 {
-	if v, ok := c.Get("current_user_id"); ok {
-		switch t := v.(type) {
-		case uint64:
-			return t
-		case uint:
-			return uint64(t)
-		case int:
-			if t > 0 {
-				return uint64(t)
-			}
-		case int64:
-			if t > 0 {
-				return uint64(t)
-			}
-		case float64:
-			if t > 0 {
-				return uint64(t)
-			}
-		case string:
-			if id, err := strconv.ParseUint(t, 10, 64); err == nil {
-				return id
-			}
-		}
-	}
-	if v := c.GetHeader("X-User-ID"); v != "" {
-		if id, err := strconv.ParseUint(v, 10, 64); err == nil {
-			return id
-		}
-	}
-	return 1
 }

@@ -57,13 +57,11 @@ class WebSocketClient {
     // 每次（重）连接都会重新求值，从 Redux 读取最新 token。
     // 若固化 URL，token 刷新后重连会一直携带旧 token，后端握手返回 401
     // （浏览器表现为 close code 1006），从而陷入无限失败重试。
-    const urlProvider = () => {
-      const fresh = store.getState().user.token;
-      const token = fresh && fresh.length > 0 ? fresh : this.token;
-      return `${WS_BASE_URL}?token=${encodeURIComponent(token)}`;
-    };
+    const urlProvider = () => WS_BASE_URL;
+    const fresh = store.getState().user.token;
+    const token = fresh && fresh.length > 0 ? fresh : this.token;
 
-    this.rws = new ReconnectingWebSocket(urlProvider, undefined, {
+    this.rws = new ReconnectingWebSocket(urlProvider, [`access_token.${token}`], {
       minReconnectionDelay: opts.reconnectMinDelayMs ?? 1000,
       maxReconnectionDelay: opts.reconnectMaxDelayMs ?? 30_000,
       reconnectionDelayGrowFactor: 1.4,

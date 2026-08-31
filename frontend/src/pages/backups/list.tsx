@@ -117,6 +117,7 @@ const BackupList: React.FC = () => {
   });
 
   const { data, refetch, isFetching } = useListBackupsQuery(filters, {
+    skip: !canView,
     refetchOnMountOrArgChange: true,
   });
 
@@ -173,11 +174,15 @@ const BackupList: React.FC = () => {
       message.error('无备份下载权限');
       return;
     }
+    if (record.backup_type === 'namespace_batch') {
+      message.warning('批量备份暂不支持下载（尚未打包为单个文件）');
+      return;
+    }
     try {
       await downloadBackupById(record);
       message.success('开始下载');
     } catch {
-      message.error('下载失败');
+      // request.download 已提示
     }
   };
 
@@ -390,7 +395,7 @@ const BackupList: React.FC = () => {
                 size="small"
                 icon={<DownloadOutlined />}
                 onClick={() => handleDownload(record)}
-                disabled={record.status !== 'success' || !canDownload}
+                disabled={record.status !== 'success' || isBatch || !canDownload}
               >
                 下载
               </Button>

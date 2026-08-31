@@ -232,7 +232,7 @@ func (a *App) RegisterAPIRoutes() *gin.Engine {
 		// ---- WebSocket 路由（设计文档 9.2 节三通道）----
 		// GET /api/v1/ws                                WebSocket 握手（用 ?token=xxx 传 JWT）
 		// GET /api/v1/clusters/:code/pods/:namespace/:pod/logs 触发 Pod 日志流
-		wsHandler := ws.NewHandler(a.WSHub, a.AuthSvc)
+		wsHandler := ws.NewHandler(a.WSHub, a.AuthSvc, a.Cfg.Security.CORSAllowOrigins)
 		podLogSvc := ws.NewPodLogService(a.WSHub, a.ClusterMgr)
 		podLogHandler := handler.NewPodLogHandler(podLogSvc)
 		api.RegisterWebsocketRoutes(v1, a.AuthSvc, wsHandler, podLogHandler)

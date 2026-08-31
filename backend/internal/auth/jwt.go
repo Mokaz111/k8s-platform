@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/k8s-platform/console/internal/config"
 )
 
@@ -18,18 +19,18 @@ const (
 )
 
 type CustomClaims struct {
-	UserID   uint64   `json:"user_id"`
-	Username string   `json:"username"`
-	Scopes   []string `json:"scopes,omitempty"`
+	UserID   uint64    `json:"user_id"`
+	Username string    `json:"username"`
+	Scopes   []string  `json:"scopes,omitempty"`
 	Type     TokenType `json:"type"`
 	jwt.RegisteredClaims
 }
 
 type JWTManager struct {
-	secret        []byte
-	issuer        string
-	accessTTL     time.Duration
-	refreshTTL    time.Duration
+	secret     []byte
+	issuer     string
+	accessTTL  time.Duration
+	refreshTTL time.Duration
 }
 
 func NewJWTManager(cfg *config.AuthConfig) *JWTManager {
@@ -69,6 +70,7 @@ func (m *JWTManager) signToken(userID uint64, username string, scopes []string, 
 		Scopes:   scopes,
 		Type:     tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(),
 			Issuer:    m.issuer,
 			Subject:   username,
 			IssuedAt:  jwt.NewNumericDate(now),

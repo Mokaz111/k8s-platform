@@ -176,10 +176,11 @@ export const useDownloadBackup = () => {
 
 // 非 hook 版本，用于按钮直接调用
 export const downloadBackupById = async (record: Backup): Promise<void> => {
-  const isBatch = record.backup_type === 'namespace_batch';
-  const ext = isBatch ? 'tar.gz' : 'yaml';
-  const namePart = record.target_name || (isBatch ? 'batch' : record.target_kind) || record.id;
-  const filename = `backup-${record.cluster_code}-${namePart}-${record.id}.${ext}`;
+  if (record.backup_type === 'namespace_batch') {
+    throw new Error('批量备份暂不支持下载');
+  }
+  const namePart = record.target_name || record.target_kind || record.id;
+  const filename = `backup-${record.cluster_code}-${namePart}-${record.id}.yaml`;
   const url = `/backups/${record.id}/download`;
   await downloadFile(url, filename);
 };

@@ -46,6 +46,8 @@ export interface HelmHistoryItem {
   updated: string;
 }
 
+const enc = (s: string): string => encodeURIComponent(s);
+
 export const helmApi = createApi({
   reducerPath: 'helmApi',
   baseQuery: axiosBaseQuery(),
@@ -53,7 +55,7 @@ export const helmApi = createApi({
   endpoints: (builder) => ({
     listReleases: builder.query<ListReleasesResponse, ListReleasesParams>({
       query: ({ clusterCode, namespace }) => ({
-        url: `/clusters/${clusterCode}/helm/releases`,
+        url: `/clusters/${enc(clusterCode)}/helm/releases`,
         method: 'GET',
         params: namespace ? { namespace } : undefined,
       }),
@@ -61,7 +63,7 @@ export const helmApi = createApi({
     }),
     installRelease: builder.mutation<{ output: string }, InstallReleaseParams>({
       query: ({ clusterCode, body }) => ({
-        url: `/clusters/${clusterCode}/helm/releases`,
+        url: `/clusters/${enc(clusterCode)}/helm/releases`,
         method: 'POST',
         data: body,
       }),
@@ -72,7 +74,7 @@ export const helmApi = createApi({
       { clusterCode: string; namespace: string; name: string }
     >({
       query: ({ clusterCode, namespace, name }) => ({
-        url: `/clusters/${clusterCode}/helm/releases/${namespace}/${name}`,
+        url: `/clusters/${enc(clusterCode)}/helm/releases/${enc(namespace)}/${enc(name)}`,
         method: 'DELETE',
       }),
       invalidatesTags: [{ type: 'HelmRelease', id: 'LIST' }],
@@ -82,7 +84,7 @@ export const helmApi = createApi({
       { clusterCode: string; namespace: string; name: string; revision?: number }
     >({
       query: ({ clusterCode, namespace, name, revision }) => ({
-        url: `/clusters/${clusterCode}/helm/releases/${namespace}/${name}/rollback`,
+        url: `/clusters/${enc(clusterCode)}/helm/releases/${enc(namespace)}/${enc(name)}/rollback`,
         method: 'POST',
         params: revision ? { revision } : undefined,
       }),
@@ -93,7 +95,7 @@ export const helmApi = createApi({
       { clusterCode: string; namespace: string; name: string }
     >({
       query: ({ clusterCode, namespace, name }) => ({
-        url: `/clusters/${clusterCode}/helm/releases/${namespace}/${name}/history`,
+        url: `/clusters/${enc(clusterCode)}/helm/releases/${enc(namespace)}/${enc(name)}/history`,
         method: 'GET',
       }),
     }),

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/k8s-platform/console/internal/auth"
 	"github.com/k8s-platform/console/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -16,17 +17,19 @@ type Client struct {
 	hub      *Hub
 	conn     *websocket.Conn
 	userID   uint64
+	permTree *auth.PermissionTree
 	send     chan []byte
 	channels map[string]bool // 订阅的频道
 	mu       sync.RWMutex
 }
 
 // newClient 构造一个 Client 实例
-func newClient(hub *Hub, conn *websocket.Conn, userID uint64) *Client {
+func newClient(hub *Hub, conn *websocket.Conn, userID uint64, pt *auth.PermissionTree) *Client {
 	return &Client{
 		hub:      hub,
 		conn:     conn,
 		userID:   userID,
+		permTree: pt,
 		send:     make(chan []byte, 256),
 		channels: make(map[string]bool),
 	}
@@ -83,7 +86,7 @@ const (
 const (
 	RedisChannelTaskProgress = "notifier:task_progress"
 	RedisChannelClusterEvent = "notifier:cluster_event"
-	RedisChannelPodLogs       = "notifier:pod_logs"
+	RedisChannelPodLogs      = "notifier:pod_logs"
 )
 
 // Message WebSocket 推送给客户端的消息统一格式
@@ -174,14 +177,24 @@ func (h *Hub) SendToClient(c *Client, payload []byte) {
 // BroadcastToChannel 把消息推送给所有订阅了指定 channel 的客户端
 // payload 必须是已经序列化好的 Message JSON（含 channel 字段）
 func (h *Hub) BroadcastToChannel(channel string, payload []byte) {
+	h.broadcastToChannel(channel, payload, nil)
+}
+
+func (h *Hub) broadcastToChannel(channel string, payload []byte, progressRaw []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	for c := range h.clients {
-		if c.subscribed(channel) {
-			select {
-			case c.send <- payload:
-			default:
+		if !c.subscribed(channel) {
+			continue
+		}
+		if channel == TypeTaskProgress && progressRaw != nil {
+			if !authorizeTaskProgressPayload(c.permTree, progressRaw) {
+				continue
 			}
+		}
+		select {
+		case c.send <- payload:
+		default:
 		}
 	}
 }
@@ -196,7 +209,11 @@ func (h *Hub) publishMessage(msgType string, channel string, payload []byte) {
 	if err != nil {
 		return
 	}
-	h.BroadcastToChannel(channel, out)
+	if channel == TypeTaskProgress {
+		h.broadcastToChannel(channel, out, payload)
+		return
+	}
+	h.broadcastToChannel(channel, out, nil)
 }
 
 // runLoop 主循环：处理客户端上下线 + 全量广播
@@ -241,8 +258,8 @@ func (h *Hub) runLoop() {
 // subscribeRedis 订阅 3 个 Redis PubSub channel，把消息按 type 转发到 Hub
 // 订阅映射：Redis channel → (消息 type, 客户端订阅 channel 前缀)
 var redisChannelMap = map[string]struct {
-	msgType  string
-	subChan  string
+	msgType string
+	subChan string
 }{
 	RedisChannelTaskProgress: {TypeTaskProgress, TypeTaskProgress},
 	RedisChannelClusterEvent: {TypeClusterEvent, TypeClusterEvent},

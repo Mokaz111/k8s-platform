@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/url"
 	"strings"
 	"time"
 
@@ -64,7 +65,7 @@ func AccessLog(log *logger.Logger, cfg *config.SecurityConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
-		query := c.Request.URL.RawQuery
+		query := redactQuery(c.Request.URL.RawQuery)
 
 		// 读取请求体（需要重新写回去，否则后面 Handler 读不到）
 		var reqBody []byte
@@ -219,4 +220,25 @@ func maskSensitive(v interface{}) {
 			maskSensitive(t[i])
 		}
 	}
+}
+
+func redactQuery(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	values, err := url.ParseQuery(raw)
+	if err != nil {
+		return raw
+	}
+	changed := false
+	for _, k := range []string{"token", "access_token", "refresh_token"} {
+		if values.Has(k) {
+			values.Set(k, "***")
+			changed = true
+		}
+	}
+	if !changed {
+		return raw
+	}
+	return values.Encode()
 }

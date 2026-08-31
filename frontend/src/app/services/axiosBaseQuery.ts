@@ -29,9 +29,17 @@ interface ApiEnvelope<T = unknown> {
 
 export const axiosBaseQuery =
   (): BaseQueryFn<AxiosBaseQueryArgs, unknown, BaseQueryError> =>
-  async ({ url, method = 'GET', data, params, headers, responseType }) => {
+  async ({ url, method = 'GET', data, params, headers, responseType }, api) => {
     try {
-      const result = await request({ url, method, data, params, headers, responseType });
+      const result = await request({
+        url,
+        method,
+        data,
+        params,
+        headers,
+        responseType,
+        signal: api.signal,
+      });
       const body = result.data;
       // 解包统一响应 envelope：成功时返回 data 字段，失败时转为 error
       if (body && typeof body === 'object' && 'code' in (body as Record<string, unknown>)) {

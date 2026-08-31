@@ -12,7 +12,7 @@ import { resetWS } from '@/slices/wsSlice';
  *
  * 设计要点：
  * - 仅在已登录（token 存在）时建立连接
- * - token 变更时自动断开旧连接并重连（连接 URL 每次重连都会读取最新 token）
+ * - token 变更时自动断开旧连接并重连（新连接通过 Sec-WebSocket-Protocol 携带最新 token）
  * - 登出（token 置空）时彻底清理：连接、channel 引用计数、Redux ws 状态
  * - 组件卸载（token 变化）时断开连接但保留 channel 引用计数，
  *   新连接建立后由 onopen 按引用计数自动恢复页面级订阅

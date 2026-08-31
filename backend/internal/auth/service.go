@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/k8s-platform/console/internal/config"
@@ -15,15 +16,15 @@ import (
 )
 
 type Scope struct {
-	ScopeType     models.ScopeType `json:"scope_type"`
-	ClusterCode   string           `json:"cluster_code,omitempty"`
-	Namespace     string           `json:"namespace,omitempty"`
+	ScopeType   models.ScopeType `json:"scope_type"`
+	ClusterCode string           `json:"cluster_code,omitempty"`
+	Namespace   string           `json:"namespace,omitempty"`
 }
 
 type PermissionTree struct {
-	Perms            map[string]struct{} `json:"perms"`
-	Scopes           []Scope             `json:"scopes"`
-	IsPlatformAdmin  bool                `json:"is_platform_admin"`
+	Perms           map[string]struct{} `json:"perms"`
+	Scopes          []Scope             `json:"scopes"`
+	IsPlatformAdmin bool                `json:"is_platform_admin"`
 }
 
 func (pt *PermissionTree) HasPerm(code string) bool {
@@ -56,8 +57,8 @@ func (pt *PermissionTree) PermsSlice() []string {
 	return s
 }
 
-// HasClusterScope 判断用户对指定集群是否有任意范围（cluster 或 namespace）的访问权
-// 平台管理员恒为 true
+// HasClusterScope 判断用户是否拥有该集群的「全集群」范围（platform / cluster）。
+// namespace 级授权不算整集群权限。
 func (pt *PermissionTree) HasClusterScope(clusterCode string) bool {
 	if pt == nil {
 		return false
@@ -69,10 +70,23 @@ func (pt *PermissionTree) HasClusterScope(clusterCode string) bool {
 		if sc.ScopeType == models.ScopePlatform {
 			return true
 		}
-		if sc.ClusterCode != clusterCode {
-			continue
+		if sc.ScopeType == models.ScopeCluster && sc.ClusterCode == clusterCode {
+			return true
 		}
-		if sc.ScopeType == models.ScopeCluster || sc.ScopeType == models.ScopeNamespace {
+	}
+	return false
+}
+
+// HasAnyAccessToCluster 用户对该集群是否有任意范围（含仅某个 namespace）。
+func (pt *PermissionTree) HasAnyAccessToCluster(clusterCode string) bool {
+	if pt == nil {
+		return false
+	}
+	if pt.HasClusterScope(clusterCode) {
+		return true
+	}
+	for _, sc := range pt.Scopes {
+		if sc.ScopeType == models.ScopeNamespace && sc.ClusterCode == clusterCode {
 			return true
 		}
 	}
@@ -169,11 +183,11 @@ func (pt *PermissionTree) AllowedNamespaces(clusterCode string) ([]string, bool)
 }
 
 type LoginResult struct {
-	AccessToken     string `json:"access_token"`
-	RefreshToken    string `json:"refresh_token"`
-	TokenType       string `json:"token_type"`
-	ExpiresIn       int64  `json:"expires_in"`
-	User            *UserBrief `json:"user"`
+	AccessToken  string     `json:"access_token"`
+	RefreshToken string     `json:"refresh_token"`
+	TokenType    string     `json:"token_type"`
+	ExpiresIn    int64      `json:"expires_in"`
+	User         *UserBrief `json:"user"`
 }
 
 type UserBrief struct {
@@ -184,11 +198,11 @@ type UserBrief struct {
 }
 
 type Service struct {
-	DB       *gorm.DB
-	Redis    *redis.Client
-	JWT      *JWTManager
-	Config   *config.AuthConfig
-	Log      *logger.Logger
+	DB     *gorm.DB
+	Redis  *redis.Client
+	JWT    *JWTManager
+	Config *config.AuthConfig
+	Log    *logger.Logger
 }
 
 const (
@@ -279,6 +293,9 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*LoginResul
 	if claims.Type != RefreshToken {
 		return nil, errcode.New(errcode.Unauthenticated, "Token 类型错误")
 	}
+	if s.IsRevoked(ctx, claims) {
+		return nil, errcode.New(errcode.Unauthenticated, "Refresh Token 已失效")
+	}
 
 	var user models.SysUser
 	if err := s.DB.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
@@ -299,6 +316,9 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*LoginResul
 	if err != nil {
 		return nil, errcode.Wrap(errcode.Internal, err, "生成 Refresh Token 失败")
 	}
+
+	// 轮换：旧 refresh 立即作废，防止重放
+	s.RevokeClaims(ctx, claims)
 
 	return &LoginResult{
 		AccessToken:  newAccess,
@@ -336,11 +356,11 @@ func (s *Service) GetUserPermissionTree(ctx context.Context, userID uint64) (*Pe
 
 func (s *Service) loadPermissionTree(ctx context.Context, userID uint64) (*PermissionTree, error) {
 	type permRow struct {
-		PermissionCode  string
-		ScopeType       models.ScopeType
-		ScopeCluster    string
-		ScopeNamespace  string
-		RoleCode        string
+		PermissionCode string
+		ScopeType      models.ScopeType
+		ScopeCluster   string
+		ScopeNamespace string
+		RoleCode       string
 	}
 	var rows []permRow
 
@@ -401,6 +421,47 @@ func (s *Service) setCachedPermissionTree(ctx context.Context, userID uint64, pt
 		return err
 	}
 	return s.Redis.Set(ctx, key, data, rbacCacheTTL).Err()
+}
+
+func denyKey(jti string) string {
+	return "auth:deny:" + jti
+}
+
+func (s *Service) IsRevoked(ctx context.Context, claims *CustomClaims) bool {
+	if s == nil || s.Redis == nil || claims == nil || claims.ID == "" {
+		return false
+	}
+	n, err := s.Redis.Exists(ctx, denyKey(claims.ID)).Result()
+	return err == nil && n > 0
+}
+
+func (s *Service) RevokeClaims(ctx context.Context, claims *CustomClaims) {
+	if s == nil || s.Redis == nil || claims == nil || claims.ID == "" {
+		return
+	}
+	ttl := s.JWT.AccessTTL()
+	if claims.ExpiresAt != nil {
+		if remain := time.Until(claims.ExpiresAt.Time); remain > 0 {
+			ttl = remain
+		} else {
+			return
+		}
+	}
+	if err := s.Redis.Set(ctx, denyKey(claims.ID), "1", ttl).Err(); err != nil {
+		s.Log.With("trace_id", traceID(ctx)).Warnw("revoke token failed", "jti", claims.ID, "err", err)
+	}
+}
+
+func (s *Service) Logout(ctx context.Context, access *CustomClaims, refreshToken string) {
+	s.RevokeClaims(ctx, access)
+	if strings.TrimSpace(refreshToken) == "" {
+		return
+	}
+	rc, err := s.JWT.ParseToken(refreshToken)
+	if err != nil || rc.Type != RefreshToken {
+		return
+	}
+	s.RevokeClaims(ctx, rc)
 }
 
 func (s *Service) InvalidateUserPermissionCache(ctx context.Context, userID uint64) error {

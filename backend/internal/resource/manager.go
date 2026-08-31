@@ -18,14 +18,14 @@ import (
 )
 
 type ListResult struct {
-	Total int64                           `json:"total"`
-	Items []*unstructured.Unstructured    `json:"items"`
+	Total int64                        `json:"total"`
+	Items []*unstructured.Unstructured `json:"items"`
 }
 
 type Manager struct {
-	clusterMgr *cluster.Manager
+	clusterMgr  *cluster.Manager
 	informerMgr *InformerManager
-	log        *logger.Logger
+	log         *logger.Logger
 }
 
 func NewManager(clusterMgr *cluster.Manager, informerMgr *InformerManager, log *logger.Logger) *Manager {
@@ -228,7 +228,9 @@ func (m *Manager) GetResource(clusterCode string, gvk schema.GroupVersionKind, n
 		if namespaced && namespace != "" {
 			key = namespace + "/" + name
 		}
-		if idx, ok := indexer.(interface{ GetByKey(string) (interface{}, bool, error) }); ok {
+		if idx, ok := indexer.(interface {
+			GetByKey(string) (interface{}, bool, error)
+		}); ok {
 			obj, exists, err := idx.GetByKey(key)
 			if err == nil && exists {
 				if u, ok := obj.(*unstructured.Unstructured); ok {
@@ -266,6 +268,66 @@ func (m *Manager) GetResource(clusterCode string, gvk schema.GroupVersionKind, n
 	}
 
 	return obj, nil
+}
+
+type ObjectIdentity struct {
+	APIVersion string
+	Kind       string
+	Namespace  string
+	Name       string
+}
+
+func NormalizeNamespace(ns string) string {
+	switch strings.TrimSpace(ns) {
+	case "", "_", "-", "_all":
+		return ""
+	default:
+		return ns
+	}
+}
+
+func ParseYAMLIdentity(yamlBytes []byte) (*ObjectIdentity, error) {
+	if len(yamlBytes) == 0 {
+		return nil, errcode.New(errcode.InvalidArgument, "yaml 内容不能为空")
+	}
+	jsonBytes, err := yaml.YAMLToJSON(yamlBytes)
+	if err != nil {
+		return nil, errcode.Wrap(errcode.InvalidArgument, err, "yaml 解析失败")
+	}
+	var obj unstructured.Unstructured
+	if err := json.Unmarshal(jsonBytes, &obj); err != nil {
+		return nil, errcode.Wrap(errcode.InvalidArgument, err, "JSON 解析失败")
+	}
+	id := &ObjectIdentity{
+		APIVersion: obj.GetAPIVersion(),
+		Kind:       obj.GetKind(),
+		Namespace:  obj.GetNamespace(),
+		Name:       obj.GetName(),
+	}
+	if id.APIVersion == "" || id.Kind == "" {
+		return nil, errcode.New(errcode.InvalidArgument, "yaml 缺少 apiVersion 或 kind")
+	}
+	if id.Name == "" {
+		return nil, errcode.New(errcode.InvalidArgument, "yaml 缺少 metadata.name")
+	}
+	return id, nil
+}
+
+func (id *ObjectIdentity) MatchGVK(apiVersion, kind string) error {
+	if id.APIVersion != apiVersion || id.Kind != kind {
+		return errcode.New(errcode.InvalidArgument, "YAML 的 apiVersion/kind 与路径不一致")
+	}
+	return nil
+}
+
+func (id *ObjectIdentity) MatchNamespacedName(namespace, name string) error {
+	if id.Name != name {
+		return errcode.New(errcode.InvalidArgument, "YAML metadata.name 与路径不一致")
+	}
+	if NormalizeNamespace(id.Namespace) != NormalizeNamespace(namespace) {
+		return errcode.New(errcode.InvalidArgument, "YAML metadata.namespace 与路径不一致")
+	}
+	return nil
 }
 
 func (m *Manager) ApplyResource(clusterCode string, yamlBytes []byte, patchType string) (*unstructured.Unstructured, error) {

@@ -2,6 +2,8 @@ package models
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/k8s-platform/console/pkg/logger"
 	"gorm.io/gorm"
@@ -42,8 +44,8 @@ var seedPermissionsData = []SysPermission{
 
 // 内置角色：platform-admin、cluster-admin、namespace-developer、platform-viewer
 type seedRoleDef struct {
-	Role        SysRole
-	Perms       []string // 匹配 SysPermission.Code，支持 "module:*" 通配
+	Role  SysRole
+	Perms []string // 匹配 SysPermission.Code，支持 "module:*" 通配
 }
 
 var seedRolesData = []seedRoleDef{
@@ -110,7 +112,7 @@ func seedRoles(db *gorm.DB) error {
 		// 创建或获取角色（Upsert）
 		role := sd.Role
 		if err := db.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "code"}},
+			Columns: []clause.Column{{Name: "code"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{
 				"name":        role.Name,
 				"description": role.Description,
@@ -188,7 +190,12 @@ func seedAdminUser(db *gorm.DB, log *logger.Logger) error {
 		AuthSource:  "local",
 		Status:      UserStatusEnabled,
 	}
-	if err := admin.SetPassword("admin123", 10); err != nil {
+	password := strings.TrimSpace(os.Getenv("K8SPLATFORM_ADMIN_PASSWORD"))
+	if password == "" {
+		password = "admin123"
+		log.Warnf("K8SPLATFORM_ADMIN_PASSWORD 未设置，使用内置口令创建 admin。请立即改密或通过环境变量注入。")
+	}
+	if err := admin.SetPassword(password, 10); err != nil {
 		return err
 	}
 	if err := db.Create(admin).Error; err != nil {
@@ -210,6 +217,6 @@ func seedAdminUser(db *gorm.DB, log *logger.Logger) error {
 		return err
 	}
 
-	log.Warnf("⚠️  Created default admin user: admin / admin123. PLEASE CHANGE PASSWORD ON FIRST LOGIN!")
+	log.Warnf("Created default admin user %q. Change the password on first login.", admin.Username)
 	return nil
 }

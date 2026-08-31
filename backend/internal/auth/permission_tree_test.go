@@ -86,12 +86,12 @@ func TestPermissionTree_HasClusterScope(t *testing.T) {
 			expect: false,
 		},
 		{
-			name: "namespace scope 命中同集群视为有访问",
+			name: "namespace scope 不算整集群",
 			pt: &PermissionTree{Scopes: []Scope{
 				{ScopeType: models.ScopeNamespace, ClusterCode: cA, Namespace: "default"},
 			}},
 			check:  cA,
-			expect: true,
+			expect: false,
 		},
 		{
 			name: "namespace scope 跨集群无访问",
@@ -115,6 +115,22 @@ func TestPermissionTree_HasClusterScope(t *testing.T) {
 				t.Fatalf("HasClusterScope(%q)=%v, want %v", c.check, got, c.expect)
 			}
 		})
+	}
+}
+
+func TestPermissionTree_HasAnyAccessToCluster(t *testing.T) {
+	const cA = "cluster-a"
+	nsOnly := &PermissionTree{Scopes: []Scope{
+		{ScopeType: models.ScopeNamespace, ClusterCode: cA, Namespace: "default"},
+	}}
+	if !nsOnly.HasAnyAccessToCluster(cA) {
+		t.Fatal("namespace scope 应对本集群 HasAnyAccessToCluster=true")
+	}
+	if nsOnly.HasClusterScope(cA) {
+		t.Fatal("namespace scope 不应 HasClusterScope")
+	}
+	if nsOnly.HasAnyAccessToCluster("other") {
+		t.Fatal("跨集群应无访问")
 	}
 }
 

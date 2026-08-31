@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -32,11 +32,11 @@ import {
   KubernetesResource,
   useCreateResourceMutation,
   useDeleteResourceMutation,
-  useListNamespacesQuery,
   useListResourcesQuery,
 } from '@/app/services/resource';
 import { useAppSelector } from '@/app/store';
 import { usePermission } from '@/hooks/usePermission';
+import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 
 // ResourceQuota status 中的 key → 中文标签
 const QUOTA_LABELS: Record<string, string> = {
@@ -100,7 +100,7 @@ const ResourceQuotaList: React.FC<{
       page: 1,
       size: 100,
     },
-    { skip: !clusterCode || !namespace, refetchOnMountOrArgChange: true },
+    { skip: !canView || !clusterCode || !namespace, refetchOnMountOrArgChange: true },
   );
 
   const handleCreate = async () => {
@@ -317,7 +317,7 @@ const LimitRangeList: React.FC<{
   canView: boolean;
   canCreate: boolean;
   canDelete: boolean;
-}> = ({ clusterCode, namespace, canCreate, canDelete }) => {
+}> = ({ clusterCode, namespace, canView, canCreate, canDelete }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const [createYaml, setCreateYaml] = useState('');
   const [createResource, { isLoading: creating }] = useCreateResourceMutation();
@@ -332,7 +332,7 @@ const LimitRangeList: React.FC<{
       page: 1,
       size: 100,
     },
-    { skip: !clusterCode || !namespace, refetchOnMountOrArgChange: true },
+    { skip: !canView || !clusterCode || !namespace, refetchOnMountOrArgChange: true },
   );
 
   const handleCreate = async () => {
@@ -545,21 +545,24 @@ spec:
 const QuotaManagement: React.FC = () => {
   const selectedClusterCode = useAppSelector((s) => s.app.selectedClusterCode);
   const { hasPerm } = usePermission();
-  const canView = hasPerm('resource:view') || hasPerm('resource:list');
+  const canView = hasPerm('resource:get') || hasPerm('resource:list');
   const canCreate = hasPerm('resource:create');
   const canDelete = hasPerm('resource:delete');
 
   const [namespace, setNamespace] = useState('default');
   const [activeTab, setActiveTab] = useState('resourcequota');
 
-  const { data: nsData } = useListNamespacesQuery(selectedClusterCode || '', {
-    skip: !selectedClusterCode,
-    refetchOnMountOrArgChange: true,
-  });
+  const { namespaces: nsData } = useAllowedNamespaces(selectedClusterCode);
   const namespaceOptions = useMemo(
-    () => (nsData || ['default']).map((n) => ({ label: n, value: n })),
+    () => nsData.map((n) => ({ label: n, value: n })),
     [nsData],
   );
+
+  useEffect(() => {
+    if (nsData.length > 0 && !nsData.includes(namespace)) {
+      setNamespace(nsData[0]);
+    }
+  }, [nsData, namespace]);
 
   return (
     <PageContainer>

@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/k8s-platform/console/internal/api/handler"
+	"github.com/k8s-platform/console/internal/api/middleware"
 )
 
 func RegisterHelmRoutes(rg *gin.RouterGroup, h *handler.HelmHandler) {
@@ -10,31 +11,32 @@ func RegisterHelmRoutes(rg *gin.RouterGroup, h *handler.HelmHandler) {
 	{
 		// 列出 Helm releases
 		helm.GET("/releases",
-			RequirePermission("helm:view"),
+			middleware.RequirePermission("helm:view"),
 			h.ListReleases)
 
 		// 安装/升级 release
 		helm.POST("/releases",
-			RequirePermission("helm:install"),
+			middleware.RequirePermission("helm:install"),
 			h.InstallRelease)
 
 		// 卸载 release
 		helm.DELETE("/releases/:namespace/:name",
-			RequirePermission("helm:uninstall"),
+			middleware.RequirePermission("helm:uninstall"),
 			h.UninstallRelease)
 
 		// 回滚 release
 		helm.POST("/releases/:namespace/:name/rollback",
-			RequirePermission("helm:rollback"),
+			middleware.RequirePermission("helm:rollback"),
 			h.RollbackRelease)
 
 		// 查看修订历史
 		helm.GET("/releases/:namespace/:name/history",
-			RequirePermission("helm:view"),
+			middleware.RequirePermission("helm:view"),
 			h.ListHistory)
 
 		// 检查 helm CLI 是否可用
 		helm.GET("/check",
+			middleware.RequirePermission("helm:view"),
 			h.CheckHelmCLI)
 	}
 }

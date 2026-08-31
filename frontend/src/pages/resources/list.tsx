@@ -33,12 +33,12 @@ import {
   KubernetesResource,
   useCreateResourceMutation,
   useDeleteResourceMutation,
-  useListNamespacesQuery,
   useListResourcesQuery,
 } from '@/app/services/resource';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
+import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 import { PodLogsViewer } from '@/components/ws';
 // 本地 Monaco 加载配置（替代 CDN，离线环境可用）
 import '@/app/monaco';
@@ -231,20 +231,20 @@ const ResourceList: React.FC = () => {
   const apiVersion = kindMeta.apiVersion;
   const isClusterScoped = !!kindMeta.clusterScoped;
 
-  const { data: namespaceData } = useListNamespacesQuery(clusterCode || '', {
-    skip: !clusterCode || isClusterScoped,
-    refetchOnMountOrArgChange: true,
-  });
+  const { namespaces: namespaceData, isFullCluster } = useAllowedNamespaces(
+    isClusterScoped ? undefined : clusterCode,
+  );
   const namespaceOptions = useMemo(() => {
     if (isClusterScoped) {
       return [{ label: '（集群级资源，无 Namespace）', value: CLUSTER_SCOPED_NS }];
     }
-    const base = namespaceData || ['default'];
-    return [
-      { label: '（全部命名空间）', value: '' },
-      ...base.map((n) => ({ label: n, value: n })),
-    ];
-  }, [namespaceData, isClusterScoped]);
+    const base = namespaceData.length > 0 ? namespaceData : isFullCluster ? ['default'] : [];
+    const opts = base.map((n) => ({ label: n, value: n }));
+    if (isFullCluster) {
+      return [{ label: '（全部命名空间）', value: '' }, ...opts];
+    }
+    return opts;
+  }, [namespaceData, isClusterScoped, isFullCluster]);
 
   // 切换 kind 如果是集群级，自动清 namespace 为 __cluster__
   useEffect(() => {
@@ -252,9 +252,20 @@ const ResourceList: React.FC = () => {
       setNamespace(CLUSTER_SCOPED_NS);
     }
     if (!isClusterScoped && namespace === CLUSTER_SCOPED_NS) {
-      setNamespace('');
+      setNamespace(isFullCluster ? '' : namespaceData[0] || '');
     }
-  }, [isClusterScoped, namespace]);
+  }, [isClusterScoped, namespace, isFullCluster, namespaceData]);
+
+  useEffect(() => {
+    if (
+      !isClusterScoped &&
+      !isFullCluster &&
+      namespaceData.length > 0 &&
+      !namespaceData.includes(namespace)
+    ) {
+      setNamespace(namespaceData[0]);
+    }
+  }, [isClusterScoped, isFullCluster, namespaceData, namespace]);
 
   const effectiveNs = isClusterScoped ? undefined : namespace || undefined;
 
@@ -272,7 +283,7 @@ const ResourceList: React.FC = () => {
   );
 
   const { data, refetch, isFetching } = useListResourcesQuery(listParams, {
-    skip: !clusterCode,
+    skip: !canView || !clusterCode || (!isClusterScoped && !isFullCluster && !namespace),
     refetchOnMountOrArgChange: true,
   });
 

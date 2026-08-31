@@ -188,11 +188,32 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		return
 	}
 
-	operator := getCurrentUsername(c)
-	operatorID := getCurrentUserID(c)
-	_ = gvk
-	_ = operator
-	_ = operatorID
+	identity, idErr := resource.ParseYAMLIdentity(rawBody)
+	if idErr != nil {
+		if ec, ok := idErr.(*errcode.Error); ok {
+			response.Fail(c, ec)
+		} else {
+			response.Fail(c, errcode.Wrap(errcode.InvalidArgument, idErr))
+		}
+		return
+	}
+	if err := identity.MatchGVK(apiVersion, kind); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+	if h.ResourceMgr.IsNamespaced(gvk) && resource.NormalizeNamespace(identity.Namespace) == "" {
+		response.Fail(c, errcode.New(errcode.InvalidArgument, "命名空间资源必须指定 metadata.namespace"))
+		return
+	}
+	if err := h.validateScope(c, gvk, identity.Namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+
+	operatorID, operator, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	patched, err := h.ResourceMgr.ApplyResource(code, rawBody, "apply")
 	if err != nil {
@@ -234,8 +255,10 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 		return
 	}
 
-	operator := getCurrentUsername(c)
-	operatorID := getCurrentUserID(c)
+	operatorID, operator, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	err = h.VersionMgr.BeforeSave(code, gvk, namespace, name, operator, operatorID, "UI 更新资源前快照")
 	if err != nil {
@@ -263,6 +286,24 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 
 	if len(rawBody) == 0 {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "YAML 内容不能为空"))
+		return
+	}
+
+	identity, idErr := resource.ParseYAMLIdentity(rawBody)
+	if idErr != nil {
+		if ec, ok := idErr.(*errcode.Error); ok {
+			response.Fail(c, ec)
+		} else {
+			response.Fail(c, errcode.Wrap(errcode.InvalidArgument, idErr))
+		}
+		return
+	}
+	if err := identity.MatchGVK(apiVersion, kind); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+	if err := identity.MatchNamespacedName(namespace, name); err != nil {
+		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 
@@ -302,8 +343,10 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 		return
 	}
 
-	operator := getCurrentUsername(c)
-	operatorID := getCurrentUserID(c)
+	operatorID, operator, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	_, err = h.VersionMgr.SnapshotBefore(code, namespace, apiVersion, kind, name, operator, "ui", "删除资源前快照", operatorID)
 	if err != nil {

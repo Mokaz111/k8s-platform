@@ -53,18 +53,18 @@ const (
 )
 
 type Cluster struct {
-	ID           uint64         `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	Name         string         `gorm:"column:name;type:varchar(64);not null;uniqueIndex" json:"name"`
-	Code         string         `gorm:"column:code;type:varchar(64);not null;uniqueIndex" json:"code"`
-	CreatorID    uint64         `gorm:"column:creator_id;not null;default:0" json:"creator_id,omitempty"`
-	Kubeconfig   []byte         `gorm:"column:kubeconfig;type:bytea;not null" json:"-"` // 密文，JSON 永不可序列化
-	APIServer    string         `gorm:"column:api_server;type:varchar(256)" json:"api_server,omitempty"`
-	Status       ClusterStatus  `gorm:"column:status;not null;default:0;index" json:"status"`
-	Version      string         `gorm:"column:version;type:varchar(32)" json:"version,omitempty"`
-	NodeCount    int            `gorm:"column:node_count;not null;default:0" json:"node_count"`
-	LastSyncAt   *time.Time     `gorm:"column:last_sync_at" json:"last_sync_at,omitempty"`
-	Description  string         `gorm:"column:description;type:varchar(512)" json:"description,omitempty"`
-	Labels       JSONB          `gorm:"column:labels;type:jsonb" json:"labels,omitempty"`
+	ID          uint64        `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Name        string        `gorm:"column:name;type:varchar(64);not null;uniqueIndex" json:"name"`
+	Code        string        `gorm:"column:code;type:varchar(64);not null;uniqueIndex" json:"code"`
+	CreatorID   uint64        `gorm:"column:creator_id;not null;default:0" json:"creator_id,omitempty"`
+	Kubeconfig  []byte        `gorm:"column:kubeconfig;type:bytea;not null" json:"-"` // 密文，JSON 永不可序列化
+	APIServer   string        `gorm:"column:api_server;type:varchar(256)" json:"api_server,omitempty"`
+	Status      ClusterStatus `gorm:"column:status;not null;default:0;index" json:"status"`
+	Version     string        `gorm:"column:version;type:varchar(32)" json:"version,omitempty"`
+	NodeCount   int           `gorm:"column:node_count;not null;default:0" json:"node_count"`
+	LastSyncAt  *time.Time    `gorm:"column:last_sync_at" json:"last_sync_at,omitempty"`
+	Description string        `gorm:"column:description;type:varchar(512)" json:"description,omitempty"`
+	Labels      JSONB         `gorm:"column:labels;type:jsonb" json:"labels,omitempty"`
 	Timestamps
 }
 
@@ -72,18 +72,18 @@ func (Cluster) TableName() string { return "cluster" }
 
 // ---------- ResourceSnapshot (版本快照) ----------
 type ResourceSnapshot struct {
-	ID            uint64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	ClusterCode   string     `gorm:"column:cluster_code;type:varchar(64);not null;index:idx_cluster_kind_name" json:"cluster_code"`
-	Namespace     string     `gorm:"column:namespace;type:varchar(64);not null;default:'_cluster_';index:idx_version_seq" json:"namespace"`
-	APIVersion    string     `gorm:"column:api_version;type:varchar(128);not null;index:idx_cluster_kind_name" json:"api_version"`
-	Kind          string     `gorm:"column:kind;type:varchar(64);not null;index:idx_cluster_kind_name;index:idx_version_seq" json:"kind"`
-	Name          string     `gorm:"column:name;type:varchar(256);not null;index:idx_cluster_kind_name;index:idx_version_seq" json:"name"`
-	VersionSeq    int        `gorm:"column:version_seq;not null;index:idx_version_seq" json:"version_seq"`
-	RawYAML       string     `gorm:"column:raw_yaml;type:text;not null" json:"raw_yaml"`
-	ChangeSummary string     `gorm:"column:change_summary;type:varchar(512)" json:"change_summary,omitempty"`
-	Operator      string     `gorm:"column:operator;type:varchar(64);not null" json:"operator"`
-	Source        string     `gorm:"column:source;type:varchar(32);not null;default:'ui'" json:"source"` // ui / rollback / backup
-	OperatorID    uint64     `gorm:"column:operator_id" json:"operator_id,omitempty"`
+	ID            uint64 `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	ClusterCode   string `gorm:"column:cluster_code;type:varchar(64);not null;index:idx_cluster_kind_name" json:"cluster_code"`
+	Namespace     string `gorm:"column:namespace;type:varchar(64);not null;default:'_cluster_';index:idx_version_seq" json:"namespace"`
+	APIVersion    string `gorm:"column:api_version;type:varchar(128);not null;index:idx_cluster_kind_name" json:"api_version"`
+	Kind          string `gorm:"column:kind;type:varchar(64);not null;index:idx_cluster_kind_name;index:idx_version_seq" json:"kind"`
+	Name          string `gorm:"column:name;type:varchar(256);not null;index:idx_cluster_kind_name;index:idx_version_seq" json:"name"`
+	VersionSeq    int    `gorm:"column:version_seq;not null;index:idx_version_seq" json:"version_seq"`
+	RawYAML       string `gorm:"column:raw_yaml;type:text;not null" json:"raw_yaml"`
+	ChangeSummary string `gorm:"column:change_summary;type:varchar(512)" json:"change_summary,omitempty"`
+	Operator      string `gorm:"column:operator;type:varchar(64);not null" json:"operator"`
+	Source        string `gorm:"column:source;type:varchar(32);not null;default:'ui'" json:"source"` // ui / rollback / backup
+	OperatorID    uint64 `gorm:"column:operator_id" json:"operator_id,omitempty"`
 	Timestamps
 }
 
@@ -101,22 +101,23 @@ const (
 )
 
 type BackupTask struct {
-	ID            uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	ClusterCode   string           `gorm:"column:cluster_code;type:varchar(64);not null;index" json:"cluster_code"`
-	Namespace     *string          `gorm:"column:namespace;type:varchar(64);index" json:"namespace,omitempty"`
-	TargetKind    *string          `gorm:"column:target_kind;type:varchar(64)" json:"target_kind,omitempty"`
-	TargetName    *string          `gorm:"column:target_name;type:varchar(256)" json:"target_name,omitempty"`
-	BackupType    string           `gorm:"column:backup_type;type:varchar(16);not null" json:"backup_type"` // single / namespace
-	StorageType   string           `gorm:"column:storage_type;type:varchar(32);not null;default:'local'" json:"storage_type"`
-	StoragePath   string           `gorm:"column:storage_path;type:varchar(512)" json:"storage_path"`
-	Status        BackupTaskStatus `gorm:"column:status;type:varchar(32);not null;default:'pending';index" json:"status"`
-	SizeBytes     *int64           `gorm:"column:size_bytes" json:"size_bytes,omitempty"`
-	Operator      string           `gorm:"column:operator;type:varchar(64)" json:"operator,omitempty"`
-	OperatorID    uint64           `gorm:"column:operator_id" json:"operator_id,omitempty"`
-	StartedAt     *time.Time       `gorm:"column:started_at;default:CURRENT_TIMESTAMP" json:"started_at,omitempty"`
-	CompletedAt   *time.Time       `gorm:"column:completed_at" json:"completed_at,omitempty"`
-	ErrorMessage  *string          `gorm:"column:error_message;type:varchar(1024)" json:"error_message,omitempty"`
-	ObjectCount   int              `gorm:"column:object_count;not null;default:0" json:"object_count"`
+	ID           uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	ClusterCode  string           `gorm:"column:cluster_code;type:varchar(64);not null;index" json:"cluster_code"`
+	Namespace    *string          `gorm:"column:namespace;type:varchar(64);index" json:"namespace,omitempty"`
+	TargetKind   *string          `gorm:"column:target_kind;type:varchar(64)" json:"target_kind,omitempty"`
+	TargetName   *string          `gorm:"column:target_name;type:varchar(256)" json:"target_name,omitempty"`
+	BackupType   string           `gorm:"column:backup_type;type:varchar(16);not null" json:"backup_type"`    // single / namespace / restore
+	RestoreMode  string           `gorm:"column:restore_mode;type:varchar(32)" json:"restore_mode,omitempty"` // overwrite / create-new，仅 restore 任务有值
+	StorageType  string           `gorm:"column:storage_type;type:varchar(32);not null;default:'local'" json:"storage_type"`
+	StoragePath  string           `gorm:"column:storage_path;type:varchar(512)" json:"storage_path"`
+	Status       BackupTaskStatus `gorm:"column:status;type:varchar(32);not null;default:'pending';index" json:"status"`
+	SizeBytes    *int64           `gorm:"column:size_bytes" json:"size_bytes,omitempty"`
+	Operator     string           `gorm:"column:operator;type:varchar(64)" json:"operator,omitempty"`
+	OperatorID   uint64           `gorm:"column:operator_id" json:"operator_id,omitempty"`
+	StartedAt    *time.Time       `gorm:"column:started_at;default:CURRENT_TIMESTAMP" json:"started_at,omitempty"`
+	CompletedAt  *time.Time       `gorm:"column:completed_at" json:"completed_at,omitempty"`
+	ErrorMessage *string          `gorm:"column:error_message;type:varchar(1024)" json:"error_message,omitempty"`
+	ObjectCount  int              `gorm:"column:object_count;not null;default:0" json:"object_count"`
 	Timestamps
 }
 
@@ -133,7 +134,7 @@ type PluginRegistry struct {
 	EntryPath     string `gorm:"column:entry_path;type:varchar(512)" json:"entry_path,omitempty"`
 	GRPCPortRange string `gorm:"column:grpc_port_range;type:varchar(32)" json:"grpc_port_range,omitempty"`
 	Config        JSONB  `gorm:"column:config;type:jsonb" json:"config,omitempty"`
-	Status        int8   `gorm:"column:status;not null;default:1" json:"status"` // 0 禁用 1 启用
+	Status        int8   `gorm:"column:status;not null;default:1" json:"status"`   // 0 禁用 1 启用
 	Builtin       int8   `gorm:"column:builtin;not null;default:0" json:"builtin"` // 0 外置 1 内置
 	Timestamps
 }
@@ -223,12 +224,12 @@ const (
 )
 
 type SysUserRole struct {
-	ID                uint64    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	UserID            uint64    `gorm:"column:user_id;not null;uniqueIndex:uk_user_role_scope" json:"user_id"`
-	RoleID            uint64    `gorm:"column:role_id;not null;uniqueIndex:uk_user_role_scope" json:"role_id"`
-	ScopeType         ScopeType `gorm:"column:scope_type;type:varchar(32);not null;default:'platform';uniqueIndex:uk_user_role_scope" json:"scope_type"`
-	ScopeClusterCode  string    `gorm:"column:scope_cluster_code;type:varchar(64);uniqueIndex:uk_user_role_scope" json:"scope_cluster_code,omitempty"`
-	ScopeNamespace    string    `gorm:"column:scope_namespace;type:varchar(64);uniqueIndex:uk_user_role_scope" json:"scope_namespace,omitempty"`
+	ID               uint64    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	UserID           uint64    `gorm:"column:user_id;not null;uniqueIndex:uk_user_role_scope" json:"user_id"`
+	RoleID           uint64    `gorm:"column:role_id;not null;uniqueIndex:uk_user_role_scope" json:"role_id"`
+	ScopeType        ScopeType `gorm:"column:scope_type;type:varchar(32);not null;default:'platform';uniqueIndex:uk_user_role_scope" json:"scope_type"`
+	ScopeClusterCode string    `gorm:"column:scope_cluster_code;type:varchar(64);uniqueIndex:uk_user_role_scope" json:"scope_cluster_code,omitempty"`
+	ScopeNamespace   string    `gorm:"column:scope_namespace;type:varchar(64);uniqueIndex:uk_user_role_scope" json:"scope_namespace,omitempty"`
 	Timestamps
 }
 
@@ -236,26 +237,26 @@ func (SysUserRole) TableName() string { return "sys_user_role" }
 
 // ---------- AuditLog ----------
 type AuditLog struct {
-	ID           uint64 `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	TraceID      string `gorm:"column:trace_id;type:varchar(64);index" json:"trace_id"`
-	UserID       uint64 `gorm:"column:user_id;index" json:"user_id,omitempty"`
-	Username     string `gorm:"column:username;type:varchar(64);index:idx_user_module" json:"username"`
-	ClientIP     string `gorm:"column:client_ip;type:varchar(64)" json:"client_ip"`
-	UserAgent    string `gorm:"column:user_agent;type:varchar(512)" json:"user_agent"`
-	Module       string `gorm:"column:module;type:varchar(64);not null;index:idx_user_module" json:"module"`
-	Action       string `gorm:"column:action;type:varchar(64);not null" json:"action"`
-	TargetType   string `gorm:"column:target_type;type:varchar(64);index:idx_cluster_target" json:"target_type,omitempty"`
-	TargetID     string `gorm:"column:target_id;type:varchar(256)" json:"target_id,omitempty"`
-	ClusterCode  string `gorm:"column:cluster_code;type:varchar(64);index:idx_cluster_target" json:"cluster_code,omitempty"`
-	Namespace    string `gorm:"column:namespace;type:varchar(64)" json:"namespace,omitempty"`
-	Status       string `gorm:"column:status;type:varchar(16);not null;default:'success'" json:"status"` // success / fail
-	ErrorMsg     string `gorm:"column:error_msg;type:varchar(1024)" json:"error_msg,omitempty"`
-	RequestMethod string `gorm:"column:request_method;type:varchar(16)" json:"request_method"`
-	RequestURI   string `gorm:"column:request_uri;type:varchar(512)" json:"request_uri"`
-	RequestBody  JSONB  `gorm:"column:request_body;type:jsonb" json:"request_body,omitempty"`
-	ResponseCode int    `gorm:"column:response_code" json:"response_code"`
-	CostMs       int    `gorm:"column:cost_ms" json:"cost_ms"`
-	CreatedAt    time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index:idx_created_at" json:"created_at"`
+	ID            uint64    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	TraceID       string    `gorm:"column:trace_id;type:varchar(64);index" json:"trace_id"`
+	UserID        uint64    `gorm:"column:user_id;index" json:"user_id,omitempty"`
+	Username      string    `gorm:"column:username;type:varchar(64);index:idx_user_module" json:"username"`
+	ClientIP      string    `gorm:"column:client_ip;type:varchar(64)" json:"client_ip"`
+	UserAgent     string    `gorm:"column:user_agent;type:varchar(512)" json:"user_agent"`
+	Module        string    `gorm:"column:module;type:varchar(64);not null;index:idx_user_module" json:"module"`
+	Action        string    `gorm:"column:action;type:varchar(64);not null" json:"action"`
+	TargetType    string    `gorm:"column:target_type;type:varchar(64);index:idx_cluster_target" json:"target_type,omitempty"`
+	TargetID      string    `gorm:"column:target_id;type:varchar(256)" json:"target_id,omitempty"`
+	ClusterCode   string    `gorm:"column:cluster_code;type:varchar(64);index:idx_cluster_target" json:"cluster_code,omitempty"`
+	Namespace     string    `gorm:"column:namespace;type:varchar(64)" json:"namespace,omitempty"`
+	Status        string    `gorm:"column:status;type:varchar(16);not null;default:'success'" json:"status"` // success / fail
+	ErrorMsg      string    `gorm:"column:error_msg;type:varchar(1024)" json:"error_msg,omitempty"`
+	RequestMethod string    `gorm:"column:request_method;type:varchar(16)" json:"request_method"`
+	RequestURI    string    `gorm:"column:request_uri;type:varchar(512)" json:"request_uri"`
+	RequestBody   JSONB     `gorm:"column:request_body;type:jsonb" json:"request_body,omitempty"`
+	ResponseCode  int       `gorm:"column:response_code" json:"response_code"`
+	CostMs        int       `gorm:"column:cost_ms" json:"cost_ms"`
+	CreatedAt     time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index:idx_created_at" json:"created_at"`
 }
 
 func (AuditLog) TableName() string { return "audit_log" }

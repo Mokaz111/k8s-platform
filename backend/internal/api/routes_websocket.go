@@ -14,10 +14,9 @@ import (
 // GET /api/v1/clusters/:code/pods/:namespace/:pod/logs
 //   触发 Pod 日志流（Auth + RBAC 中间件）
 func RegisterWebsocketRoutes(r *gin.RouterGroup, authSvc *auth.Service, wsHandler *ws.Handler, podLogHandler *handler.PodLogHandler) {
-	// WebSocket 握手路由：仅鉴权（不需要 RBAC，因为后续按 channel 订阅实现细粒度过滤）
-	// 用单独的子分组挂 AuthMiddleware，避免影响其他路由的 RBAC
+	// WebSocket 握手：浏览器无法自定义 Authorization，由 Handler 从
+	// Sec-WebSocket-Protocol / query / Header 自行校验 JWT，再按 channel 做 scope。
 	wsGroup := r.Group("")
-	wsGroup.Use(middleware.AuthMiddleware(authSvc))
 	{
 		wsGroup.GET("/ws", wsHandler.WsHandler)
 	}
@@ -28,7 +27,7 @@ func RegisterWebsocketRoutes(r *gin.RouterGroup, authSvc *auth.Service, wsHandle
 	authorized.Use(middleware.RBACMiddleware(authSvc))
 	{
 		authorized.GET("/clusters/:code/pods/:namespace/:pod/logs",
-			RequirePermission("cluster:list"),
+			middleware.RequirePermission("cluster:list"),
 			podLogHandler.StreamPodLogsHandler)
 	}
 }

@@ -68,8 +68,10 @@ func (h *BackupHandler) CreateBackup(c *gin.Context) {
 	req.Namespace = strings.TrimSpace(req.Namespace)
 	mode := modeFromRequest(req.Mode, req.Scope)
 
-	operatorID := getCurrentUserID(c)
-	operator := getCurrentUsername(c)
+	operatorID, operator, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	in := &backup.SubmitBackupInput{
 		ClusterCode: code,
@@ -117,10 +119,14 @@ func (h *BackupHandler) CreateBackup(c *gin.Context) {
 				return
 			}
 		}
-		// 同时要求 cluster scope 校验（整体 backup:create 已经挂了，但对集群对象导出也需要 cluster 级访问）
-		if err := middleware.RequireClusterScope(c, code); err != nil {
-			response.Fail(c, err.(*errcode.Error))
-			return
+		for _, kind := range in.KindFilter {
+			if kindNeedsClusterScope(kind) {
+				if err := middleware.RequireClusterScope(c, code); err != nil {
+					response.Fail(c, errcode.New(errcode.ScopeDenied, "批量备份包含集群级资源，需要集群范围权限"))
+					return
+				}
+				break
+			}
 		}
 	}
 
@@ -212,11 +218,7 @@ func (h *BackupHandler) GetBackup(c *gin.Context) {
 		}
 		return
 	}
-	nsStr := ""
-	if item.Namespace != nil {
-		nsStr = *item.Namespace
-	}
-	if err := middleware.RequireNamespaceScope(c, item.ClusterCode, nsStr); err != nil {
+	if err := requireBackupRecordScope(c, item); err != nil {
 		response.Fail(c, err.(*errcode.Error))
 		return
 	}
@@ -241,11 +243,7 @@ func (h *BackupHandler) DownloadBackup(c *gin.Context) {
 		}
 		return
 	}
-	nsStr := ""
-	if item.Namespace != nil {
-		nsStr = *item.Namespace
-	}
-	if err := middleware.RequireNamespaceScope(c, item.ClusterCode, nsStr); err != nil {
+	if err := requireBackupRecordScope(c, item); err != nil {
 		response.Fail(c, err.(*errcode.Error))
 		return
 	}
@@ -327,12 +325,12 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 		}
 		return
 	}
-	srcNS := ""
-	if src.Namespace != nil {
-		srcNS = *src.Namespace
-	}
-	if err := middleware.RequireNamespaceScope(c, src.ClusterCode, srcNS); err != nil {
+	if err := requireBackupRecordScope(c, src); err != nil {
 		response.Fail(c, err.(*errcode.Error))
+		return
+	}
+	if backup.IsNamespaceBatch(src.BackupType) {
+		response.Fail(c, errcode.New(errcode.InvalidArgument, "批量备份暂不支持恢复，请按对象分别备份后再恢复"))
 		return
 	}
 	targetCode := strings.TrimSpace(req.TargetCluster)
@@ -342,13 +340,28 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 	if targetCode == "" {
 		targetCode = src.ClusterCode
 	}
-	if err := middleware.RequireClusterScope(c, targetCode); err != nil {
+	srcNS := ""
+	if src.Namespace != nil {
+		srcNS = *src.Namespace
+	}
+	targetNS := strings.TrimSpace(req.TargetNamespace)
+	if targetNS == "" {
+		targetNS = srcNS
+	}
+	if targetNS != "" {
+		if err := middleware.RequireNamespaceScope(c, targetCode, targetNS); err != nil {
+			response.Fail(c, err.(*errcode.Error))
+			return
+		}
+	} else if err := middleware.RequireClusterScope(c, targetCode); err != nil {
 		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 
-	operatorID := getCurrentUserID(c)
-	operator := getCurrentUsername(c)
+	operatorID, operator, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	task, err := h.Mgr.SubmitRestoreTask(context.Background(), &backup.SubmitRestoreInput{
 		BackupID:          id,
@@ -385,11 +398,7 @@ func (h *BackupHandler) DeleteBackup(c *gin.Context) {
 		}
 		return
 	}
-	nsStr := ""
-	if item.Namespace != nil {
-		nsStr = *item.Namespace
-	}
-	if err := middleware.RequireNamespaceScope(c, item.ClusterCode, nsStr); err != nil {
+	if err := requireBackupRecordScope(c, item); err != nil {
 		response.Fail(c, err.(*errcode.Error))
 		return
 	}
@@ -404,14 +413,38 @@ func (h *BackupHandler) DeleteBackup(c *gin.Context) {
 	response.OK(c, gin.H{"deleted": true, "id": id})
 }
 
-func getCurrentUsername(c *gin.Context) string {
-	if v, ok := c.Get("current_username"); ok {
-		if s, ok := v.(string); ok && s != "" {
-			return s
+func kindNeedsClusterScope(kind string) bool {
+	switch kind {
+	case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding",
+		"StorageClass", "PriorityClass", "CustomResourceDefinition", "CSIDriver", "CSINode":
+		return true
+	}
+	return false
+}
+
+func requireBackupRecordScope(c *gin.Context, item *models.BackupTask) error {
+	if item == nil {
+		return errcode.New(errcode.BackupNotFound)
+	}
+	nsStr := ""
+	if item.Namespace != nil {
+		nsStr = *item.Namespace
+	}
+	if backup.IsNamespaceBatch(item.BackupType) || strings.HasPrefix(nsStr, "multi:") {
+		pt := middleware.GetPermTree(c)
+		if pt == nil {
+			return errcode.New(errcode.ScopeDenied, "权限未加载，拒绝访问备份")
 		}
+		if pt.HasClusterScope(item.ClusterCode) {
+			return nil
+		}
+		if uid, ok := middleware.CurrentUserID(c); ok && item.OperatorID == uid {
+			return nil
+		}
+		if nsStr != "" && !strings.HasPrefix(nsStr, "multi:") {
+			return middleware.RequireNamespaceScope(c, item.ClusterCode, nsStr)
+		}
+		return errcode.New(errcode.ScopeDenied, "无权访问该批量备份")
 	}
-	if v := c.GetHeader("X-User-Name"); v != "" {
-		return v
-	}
-	return ""
+	return middleware.RequireNamespaceScope(c, item.ClusterCode, nsStr)
 }

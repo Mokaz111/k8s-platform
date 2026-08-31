@@ -34,8 +34,8 @@ const (
 type BackupMode string
 
 const (
-	BackupModeSingle          BackupMode = "single"
-	BackupModeNamespaceBatch  BackupMode = "namespace_batch"
+	BackupModeSingle         BackupMode = "single"
+	BackupModeNamespaceBatch BackupMode = "namespace_batch"
 )
 
 type SubmitBackupInput struct {
@@ -151,9 +151,9 @@ func (m *Manager) SubmitBackupTask(ctx context.Context, in *SubmitBackupInput) (
 
 	// ========== 构造任务记录 ==========
 	var (
-		nsPtr     *string
-		kindPtr   *string
-		namePtr   *string
+		nsPtr      *string
+		kindPtr    *string
+		namePtr    *string
 		backupType = string(mode)
 	)
 	if mode == BackupModeSingle {
@@ -231,6 +231,9 @@ func (m *Manager) SubmitRestoreTask(ctx context.Context, in *SubmitRestoreInput)
 		return nil, errcode.New(errcode.BackupRestoreFail,
 			fmt.Sprintf("源备份状态为 %s，仅 success 可恢复", src.Status))
 	}
+	if IsNamespaceBatch(src.BackupType) {
+		return nil, errcode.New(errcode.InvalidArgument, "批量备份暂不支持恢复")
+	}
 
 	targetCode := in.TargetClusterCode
 	if targetCode == "" {
@@ -256,13 +259,13 @@ func (m *Manager) SubmitRestoreTask(ctx context.Context, in *SubmitRestoreInput)
 		TargetKind:  src.TargetKind,
 		TargetName:  &restoreName,
 		BackupType:  restoreType,
+		RestoreMode: modeStr,
 		StorageType: src.StorageType,
 		StoragePath: src.StoragePath,
 		Status:      models.BackupStatusPending,
 		Operator:    in.Operator,
 		OperatorID:  in.OperatorID,
 	}
-	_ = modeStr
 
 	if err := m.DB.WithContext(ctx).Create(task).Error; err != nil {
 		return nil, errcode.Wrap(errcode.DatabaseError, err, "创建恢复任务失败")
@@ -365,23 +368,51 @@ func (m *Manager) Delete(ctx context.Context, id uint64) error {
 	if err != nil {
 		return err
 	}
-	if t.StoragePath != "" {
-		s, getErr := m.Plugins.GetStorage(t.StorageType)
-		if getErr == nil {
-			key := t.StoragePath
-			// 兼容 legacy：如果是 local 且存的是绝对路径，仍然直接按路径删
-			if delErr := s.Delete(ctx, key); delErr != nil {
-				m.Log.Warnf("delete backup storage failed: id=%d key=%s err=%v", id, key, delErr)
-			} else {
-				m.Log.Infof("🗑️ backup storage deleted: id=%d key=%s", id, key)
-			}
-		}
-	}
+	m.deleteStorageObjects(ctx, t)
 	if err := m.DB.WithContext(ctx).Delete(&models.BackupTask{}, id).Error; err != nil {
 		return errcode.Wrap(errcode.DatabaseError, err, "删除备份记录失败")
 	}
 	_ = m.Redis.Del(ctx, batchPayloadKey(id)).Err()
 	return nil
+}
+
+func (m *Manager) deleteStorageObjects(ctx context.Context, t *models.BackupTask) {
+	if t == nil || t.StoragePath == "" {
+		return
+	}
+	s, getErr := m.Plugins.GetStorage(t.StorageType)
+	if getErr != nil {
+		m.Log.Warnf("delete backup storage skip: id=%d type=%s err=%v", t.ID, t.StorageType, getErr)
+		return
+	}
+	deleted := 0
+	if IsNamespaceBatch(t.BackupType) {
+		prefix := BatchObjectPrefix(t.ID, t.StoragePath)
+		if prefix != "" {
+			items, lerr := s.List(ctx, prefix)
+			if lerr != nil {
+				m.Log.Warnf("list batch backup objects failed: id=%d prefix=%s err=%v", t.ID, prefix, lerr)
+			} else {
+				for _, it := range items {
+					if delErr := s.Delete(ctx, it.Key); delErr != nil {
+						m.Log.Warnf("delete backup storage failed: id=%d key=%s err=%v", t.ID, it.Key, delErr)
+						continue
+					}
+					deleted++
+				}
+			}
+		}
+	}
+	if deleted == 0 {
+		if delErr := s.Delete(ctx, t.StoragePath); delErr != nil {
+			m.Log.Warnf("delete backup storage failed: id=%d key=%s err=%v", t.ID, t.StoragePath, delErr)
+		} else {
+			deleted = 1
+		}
+	}
+	if deleted > 0 {
+		m.Log.Infof("🗑️ backup storage deleted: id=%d objects=%d", t.ID, deleted)
+	}
 }
 
 // Download 返回备份文件 ReadCloser（Manager 层统一解 StoragePath 语义，兼容历史绝对路径）
@@ -394,8 +425,11 @@ func (m *Manager) Download(ctx context.Context, id uint64) (*DownloadResult, err
 		return nil, errcode.New(errcode.BackupRestoreFail,
 			fmt.Sprintf("备份状态为 %s，仅 success 可下载", t.Status))
 	}
+	if IsNamespaceBatch(t.BackupType) {
+		return nil, errcode.New(errcode.InvalidArgument, "批量备份暂不支持下载（尚未打包为单个文件）")
+	}
 	if t.StoragePath == "" {
-		return nil, errcode.New(errcode.BackupRestoreFail, "该备份无存储文件（可能是批量备份未打包）")
+		return nil, errcode.New(errcode.BackupRestoreFail, "该备份无存储文件")
 	}
 	stor, gerr := m.Plugins.GetStorage(t.StorageType)
 	if gerr != nil {
@@ -449,6 +483,31 @@ func batchPayloadKey(taskID uint64) string {
 	return fmt.Sprintf("backup:batch:%d", taskID)
 }
 
+func IsNamespaceBatch(backupType string) bool {
+	switch backupType {
+	case string(BackupModeNamespaceBatch), "namespace":
+		return true
+	}
+	return false
+}
+
+// BatchObjectPrefix 从单对象 key 或已存前缀推出批量对象前缀：cluster/date/{taskID}-
+func BatchObjectPrefix(taskID uint64, storagePath string) string {
+	p := strings.ReplaceAll(storagePath, "\\", "/")
+	idPrefix := strconv.FormatUint(taskID, 10) + "-"
+	if p == "" {
+		return ""
+	}
+	if strings.HasSuffix(p, idPrefix) {
+		return p
+	}
+	i := strings.LastIndex(p, "/")
+	if i < 0 {
+		return idPrefix
+	}
+	return p[:i+1] + idPrefix
+}
+
 func (m *Manager) pushTaskToStream(ctx context.Context, taskID uint64, taskType string) error {
 	values := map[string]interface{}{
 		"task_id":    strconv.FormatUint(taskID, 10),
@@ -470,9 +529,9 @@ func (m *Manager) setTaskError(id uint64, errMsg string) error {
 	now := time.Now()
 	msg := truncate(errMsg, 1024)
 	return m.DB.Model(&models.BackupTask{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"status":         models.BackupStatusFailed,
-		"error_message":  &msg,
-		"completed_at":   &now,
+		"status":        models.BackupStatusFailed,
+		"error_message": &msg,
+		"completed_at":  &now,
 	}).Error
 }
 

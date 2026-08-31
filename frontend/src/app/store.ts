@@ -1,7 +1,7 @@
 import { configureStore, Middleware } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import userReducer, { logout } from '@/slices/userSlice';
-import appReducer from '@/slices/appSlice';
+import appReducer, { setSelectedClusterCode } from '@/slices/appSlice';
 import wsReducer from '@/slices/wsSlice';
 import { clusterApi } from '@/app/services/cluster';
 import { resourceApi } from '@/app/services/resource';
@@ -17,6 +17,7 @@ const allApis = [clusterApi, resourceApi, versionApi, backupApi, rbacApi, helmAp
 const resetApiCacheOnLogout: Middleware = (api) => (next) => (action) => {
   const result = next(action);
   if (logout.match(action)) {
+    api.dispatch(setSelectedClusterCode(null));
     allApis.forEach((apiSlice) => api.dispatch(apiSlice.util.resetApiState()));
   }
   return result;

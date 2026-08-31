@@ -73,33 +73,36 @@ func (h *AuthHandler) RefreshHandler(c *gin.Context) {
 }
 
 type userRoleInfo struct {
-	RoleID       uint64              `json:"role_id"`
-	RoleCode     string              `json:"role_code"`
-	RoleName     string              `json:"role_name"`
-	ScopeType    models.ScopeType    `json:"scope_type"`
-	ClusterCode  string              `json:"cluster_code,omitempty"`
-	Namespace    string              `json:"namespace,omitempty"`
+	RoleID      uint64           `json:"role_id"`
+	RoleCode    string           `json:"role_code"`
+	RoleName    string           `json:"role_name"`
+	ScopeType   models.ScopeType `json:"scope_type"`
+	ClusterCode string           `json:"cluster_code,omitempty"`
+	Namespace   string           `json:"namespace,omitempty"`
 }
 
 type currentUserResp struct {
-	ID           uint64              `json:"id"`
-	Username     string              `json:"username"`
-	DisplayName  string              `json:"display_name"`
-	Email        string              `json:"email,omitempty"`
-	Phone        string              `json:"phone,omitempty"`
-	AuthSource   string              `json:"auth_source"`
-	Status       models.UserStatus   `json:"status"`
-	LastLoginAt  string              `json:"last_login_at,omitempty"`
-	LastLoginIP  string              `json:"last_login_ip,omitempty"`
-	Roles        []userRoleInfo      `json:"roles"`
-	Perms        []string            `json:"perms"`
-	IsPlatformAdmin bool             `json:"is_platform_admin"`
+	ID              uint64            `json:"id"`
+	Username        string            `json:"username"`
+	DisplayName     string            `json:"display_name"`
+	Email           string            `json:"email,omitempty"`
+	Phone           string            `json:"phone,omitempty"`
+	AuthSource      string            `json:"auth_source"`
+	Status          models.UserStatus `json:"status"`
+	LastLoginAt     string            `json:"last_login_at,omitempty"`
+	LastLoginIP     string            `json:"last_login_ip,omitempty"`
+	Roles           []userRoleInfo    `json:"roles"`
+	Perms           []string          `json:"perms"`
+	IsPlatformAdmin bool              `json:"is_platform_admin"`
 }
 
 func (h *AuthHandler) CurrentUserHandler(c *gin.Context) {
-	uid, _ := c.Get(middleware.CtxUserID)
-	userID := uid.(uint64)
-	username, _ := c.Get(middleware.CtxUsername)
+	userID, ok := middleware.CurrentUserID(c)
+	if !ok {
+		response.Fail(c, errcode.New(errcode.Unauthenticated, "无法识别当前用户"))
+		return
+	}
+	username, _ := middleware.CurrentUsername(c)
 
 	var user models.SysUser
 	if err := h.DB.Where("id = ?", userID).First(&user).Error; err != nil {
@@ -116,12 +119,12 @@ func (h *AuthHandler) CurrentUserHandler(c *gin.Context) {
 	}
 
 	type roleRow struct {
-		RoleID          uint64
-		RoleCode        string
-		RoleName        string
-		ScopeType       models.ScopeType
-		ScopeCluster    string
-		ScopeNamespace  string
+		RoleID         uint64
+		RoleCode       string
+		RoleName       string
+		ScopeType      models.ScopeType
+		ScopeCluster   string
+		ScopeNamespace string
 	}
 	var rows []roleRow
 	h.DB.Table("sys_user_role ur").
@@ -172,5 +175,12 @@ type logoutReq struct {
 func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 	var req logoutReq
 	_ = c.ShouldBindJSON(&req)
+	ctx := c.Request.Context()
+	ctx = context.WithValue(ctx, "trace_id", c.GetString("trace_id"))
+	var access *auth.CustomClaims
+	if v, ok := c.Get(middleware.CtxClaims); ok {
+		access, _ = v.(*auth.CustomClaims)
+	}
+	h.AuthSvc.Logout(ctx, access, req.RefreshToken)
 	response.OK(c, gin.H{"message": "logout success"})
 }

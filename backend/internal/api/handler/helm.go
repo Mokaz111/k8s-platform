@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k8s-platform/console/internal/api/middleware"
 	"github.com/k8s-platform/console/internal/helm"
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/response"
@@ -22,11 +23,40 @@ func (h *HelmHandler) ListReleases(c *gin.Context) {
 	}
 	namespace := c.Query("namespace")
 
+	if namespace != "" && namespace != "all" && namespace != "ALL" {
+		if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+			response.Fail(c, err.(*errcode.Error))
+			return
+		}
+	}
+
 	releases, err := h.Mgr.ListReleases(c.Request.Context(), clusterCode, namespace)
 	if err != nil {
 		response.Fail(c, errcode.Wrap(errcode.Internal, err, "查询 Helm releases 失败"))
 		return
 	}
+
+	if namespace == "" || namespace == "all" || namespace == "ALL" {
+		allowed, isFull := middleware.AllowedNamespaces(c, clusterCode)
+		if !isFull {
+			if len(allowed) == 0 {
+				response.OK(c, gin.H{"items": []helm.HelmRelease{}, "total": 0})
+				return
+			}
+			allowSet := make(map[string]struct{}, len(allowed))
+			for _, ns := range allowed {
+				allowSet[ns] = struct{}{}
+			}
+			filtered := make([]helm.HelmRelease, 0, len(releases))
+			for _, r := range releases {
+				if _, ok := allowSet[r.Namespace]; ok {
+					filtered = append(filtered, r)
+				}
+			}
+			releases = filtered
+		}
+	}
+
 	response.OK(c, gin.H{"items": releases, "total": len(releases)})
 }
 
@@ -47,6 +77,10 @@ func (h *HelmHandler) InstallRelease(c *gin.Context) {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "release_name, namespace, chart_ref 不能为空"))
 		return
 	}
+	if err := middleware.RequireNamespaceScope(c, clusterCode, req.Namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
 
 	out, err := h.Mgr.Install(c.Request.Context(), req)
 	if err != nil {
@@ -64,6 +98,10 @@ func (h *HelmHandler) UninstallRelease(c *gin.Context) {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "参数不完整"))
 		return
 	}
+	if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
+		return
+	}
 
 	out, err := h.Mgr.Uninstall(c.Request.Context(), clusterCode, namespace, releaseName)
 	if err != nil {
@@ -79,6 +117,10 @@ func (h *HelmHandler) RollbackRelease(c *gin.Context) {
 	releaseName := c.Param("name")
 	if clusterCode == "" || namespace == "" || releaseName == "" {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "参数不完整"))
+		return
+	}
+	if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 
@@ -102,6 +144,10 @@ func (h *HelmHandler) ListHistory(c *gin.Context) {
 	releaseName := c.Param("name")
 	if clusterCode == "" || namespace == "" || releaseName == "" {
 		response.Fail(c, errcode.New(errcode.InvalidArgument, "参数不完整"))
+		return
+	}
+	if err := middleware.RequireNamespaceScope(c, clusterCode, namespace); err != nil {
+		response.Fail(c, err.(*errcode.Error))
 		return
 	}
 

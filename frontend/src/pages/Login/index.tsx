@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '@/app/store';
 import { login, fetchCurrentUser } from '@/slices/userSlice';
 import { setDispatch } from '@/app/services/request';
+import { safeRedirectPath } from '@/app/routePerms';
 
 type LoginParams = {
   username: string;
@@ -17,7 +18,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = safeRedirectPath(searchParams.get('redirect'));
 
   React.useEffect(() => {
     setDispatch(dispatch);
@@ -36,7 +37,7 @@ const Login: React.FC = () => {
       try {
         await dispatch(fetchCurrentUser()).unwrap();
       } catch {
-        // ignore：/auth/me 失败由拦截器提示
+        message.warning('已登录，但权限信息加载失败，进入后可重试');
       }
       message.success('登录成功');
       navigate(redirect, { replace: true });

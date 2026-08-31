@@ -53,6 +53,7 @@ import {
 } from '@/app/services/version';
 import { useAppDispatch } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
+import { usePermission } from '@/hooks/usePermission';
 // 本地 Monaco 加载配置（替代 CDN，离线环境可用）
 import '@/app/monaco';
 
@@ -117,6 +118,10 @@ const ResourceEdit: React.FC = () => {
     { skip: !code || !kind || !name },
   );
 
+  const { hasPerm } = usePermission();
+  const canUpdate = hasPerm('resource:update');
+  const canDelete = hasPerm('resource:delete');
+  const canRollback = hasPerm('version:rollback') || canUpdate;
   const [yamlValue, setYamlValue] = useState<string>('');
   const [originalYaml, setOriginalYaml] = useState<string>('');
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -175,6 +180,10 @@ const ResourceEdit: React.FC = () => {
   const isDirty = yamlValue !== originalYaml;
 
   const handleSave = async () => {
+    if (!canUpdate) {
+      message.error('无编辑权限');
+      return;
+    }
     try {
       if (!yamlValue.trim()) {
         message.error('YAML 内容不能为空');
@@ -199,6 +208,10 @@ const ResourceEdit: React.FC = () => {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      message.error('无删除权限');
+      return;
+    }
     try {
       await deleteResource({
         code,
@@ -263,6 +276,10 @@ const ResourceEdit: React.FC = () => {
   };
 
   const handleRollback = async (seq: number) => {
+    if (!canRollback) {
+      message.error('无回滚权限');
+      return;
+    }
     Modal.confirm({
       title: `回滚到版本 #${seq}`,
       content: '将用该历史版本的 YAML 覆盖当前集群中的对象，是否继续？',
@@ -305,25 +322,29 @@ const ResourceEdit: React.FC = () => {
       }
       extra={
         <Space>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={handleSave}
-            loading={updateLoading}
-            disabled={!isDirty}
-          >
-            保存{isDirty ? '（有未保存修改）' : ''}
-          </Button>
-          <Popconfirm
-            title={`确认删除当前 ${kind}「${name}」？`}
-            okButtonProps={{ danger: true }}
-            description="该操作会从集群中移除该对象"
-            onConfirm={handleDelete}
-          >
-            <Button danger icon={<DeleteOutlined />}>
-              删除
+          {canUpdate && (
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={handleSave}
+              loading={updateLoading}
+              disabled={!isDirty}
+            >
+              保存{isDirty ? '（有未保存修改）' : ''}
             </Button>
-          </Popconfirm>
+          )}
+          {canDelete && (
+            <Popconfirm
+              title={`确认删除当前 ${kind}「${name}」？`}
+              okButtonProps={{ danger: true }}
+              description="该操作会从集群中移除该对象"
+              onConfirm={handleDelete}
+            >
+              <Button danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       }
     >
@@ -390,6 +411,7 @@ const ResourceEdit: React.FC = () => {
                               tabSize: 2,
                               insertSpaces: true,
                               wordWrap: 'on',
+                              readOnly: !canUpdate,
                             }}
                           />
                         )}
@@ -455,6 +477,7 @@ const ResourceEdit: React.FC = () => {
                                             ? dayjs(v.created_at).format('YYYY-MM-DD HH:mm:ss')
                                             : ''}
                                         </span>
+                                        {canRollback && (
                                         <Button
                                           type="link"
                                           size="small"
@@ -464,6 +487,7 @@ const ResourceEdit: React.FC = () => {
                                         >
                                           回滚到此版本
                                         </Button>
+                                        )}
                                       </Space>
                                     }
                                   >

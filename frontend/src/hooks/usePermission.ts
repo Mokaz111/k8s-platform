@@ -15,12 +15,15 @@ export const usePermission = () => {
   const perms = currentUser?.perms || [];
   const isPlatformAdmin = currentUser?.is_platform_admin || false;
 
-  // 是否拥有指定权限点
-  const hasPerm = (code: string) => isPlatformAdmin || perms.includes(code);
-  // 是否拥有任一权限点
-  const hasAnyPerm = (codes: string[]) => isPlatformAdmin || codes.some((c) => perms.includes(c));
-  // 是否同时拥有全部权限点
-  const hasAllPerms = (codes: string[]) => isPlatformAdmin || codes.every((c) => perms.includes(c));
+  const hasPerm = (code: string) => {
+    if (isPlatformAdmin || perms.includes('*:*') || perms.includes(code)) {
+      return true;
+    }
+    const idx = code.indexOf(':');
+    return idx > 0 && perms.includes(`${code.slice(0, idx)}:*`);
+  };
+  const hasAnyPerm = (codes: string[]) => isPlatformAdmin || codes.some((c) => hasPerm(c));
+  const hasAllPerms = (codes: string[]) => isPlatformAdmin || codes.every((c) => hasPerm(c));
 
   return { perms, isPlatformAdmin, hasPerm, hasAnyPerm, hasAllPerms };
 };

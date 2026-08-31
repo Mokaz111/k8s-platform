@@ -6,10 +6,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListClustersQuery, type Cluster } from '@/app/services/cluster';
 import {
   KubernetesResource,
-  useListNamespacesQuery,
   useListResourcesQuery,
 } from '@/app/services/resource';
 import { PodLogsViewer } from '@/components/ws';
+import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 
 const { Text } = Typography;
 
@@ -43,10 +43,7 @@ const PodLogsPage: React.FC = () => {
   });
   const clusters = clusterData?.items || [];
 
-  const { data: namespaces } = useListNamespacesQuery(clusterCode || '', {
-    skip: !clusterCode,
-    refetchOnMountOrArgChange: true,
-  });
+  const { namespaces } = useAllowedNamespaces(clusterCode);
 
   // 加载 Pod 列表
   const { data: podsData, isFetching: loadingPods } = useListResourcesQuery(

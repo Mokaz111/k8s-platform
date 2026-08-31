@@ -6,11 +6,11 @@ import { ConfigProvider, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import 'dayjs/locale/zh-cn';
 import dayjs from 'dayjs';
-import 'nprogress/nprogress.css';
 
 import { store } from '@/app/store';
 import { router } from '@/app/router';
 import { setDispatch } from '@/app/services/request';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './index.scss';
 
 dayjs.locale('zh-cn');
@@ -29,7 +29,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         }}
       >
         <AntdApp>
-          <RouterProvider router={router} />
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
         </AntdApp>
       </ConfigProvider>
     </Provider>

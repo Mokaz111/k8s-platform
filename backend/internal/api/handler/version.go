@@ -152,8 +152,10 @@ func (h *VersionHandler) Rollback(c *gin.Context) {
 		return
 	}
 
-	operator := getCurrentUsername(c)
-	operatorID := getCurrentUserID(c)
+	operatorID, operator, ok := mustCurrentUser(c)
+	if !ok {
+		return
+	}
 
 	patched, err := h.VersionMgr.Rollback(
 		req.ClusterCode, req.Namespace, req.APIVersion, req.Kind, req.Name, req.Seq,

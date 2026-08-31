@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { ROUTE_PERMS } from '@/app/routePerms';
 import { ProLayout } from '@ant-design/pro-components';
 import { Avatar, Badge, Dropdown, Select, Space, Tooltip, message } from 'antd';
 import {
@@ -23,6 +24,7 @@ import { logout, fetchCurrentUser } from '@/slices/userSlice';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { selectWSStatus } from '@/slices/wsSlice';
 import { useListClustersQuery } from '@/app/services/cluster';
+import request from '@/app/services/request';
 import { useWebSocketLifecycle } from '@/hooks/useWebSocket';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -30,32 +32,7 @@ import { usePermission } from '@/hooks/usePermission';
 // 没有配置 perm 的菜单默认对所有登录用户显示
 // 注意：权限码必须与后端 models/seed.go 的 seedPermissionsData 完全一致，
 // 否则普通角色（cluster-admin / platform-viewer 等）菜单会被全部隐藏
-const MENU_PERM_MAP: Record<string, string[]> = {
-  // 概览：后端无 dashboard 权限点，对所有登录用户开放
-  // 集群管理：只要有任何 cluster 相关权限就显示分组
-  '/clusters': ['cluster:list', 'cluster:create', 'cluster:update', 'cluster:delete', 'cluster:ping'],
-  '/clusters/list': ['cluster:list'],
-  '/clusters/import': ['cluster:create'],
-  // 资源管理
-  '/resources': ['resource:list', 'resource:get', 'resource:create', 'resource:update', 'resource:delete'],
-  '/resources/list': ['resource:list'],
-  '/resources/quota': ['resource:list'],
-  // 备份管理
-  '/backups': ['backup:list', 'backup:create', 'backup:restore', 'backup:delete'],
-  '/backups/list': ['backup:list'],
-  '/backups/create': ['backup:create'],
-  // 运维工具（Pod 日志）：后端无独立权限点，访问控制由 RequireNamespaceScope 数据范围校验
-  // 权限管理
-  '/rbac': ['user:manage', 'role:manage'],
-  '/rbac/users': ['user:manage'],
-  '/rbac/roles': ['role:manage'],
-  // 审计日志
-  '/audit': ['audit:list'],
-  '/audit/list': ['audit:list'],
-  // Helm 应用管理
-  '/helm': ['helm:view', 'helm:install', 'helm:uninstall', 'helm:rollback'],
-  '/helm/list': ['helm:view'],
-};
+const MENU_PERM_MAP = ROUTE_PERMS;
 
 type MenuRoute = {
   path: string;
@@ -121,20 +98,19 @@ const WSStatusBadge: React.FC = () => {
 const BasicLayout: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentUser, token } = useAppSelector((state) => state.user);
+  const { currentUser, token, profileStatus } = useAppSelector((state) => state.user);
   const { selectedClusterCode, collapsed } = useAppSelector((state) => state.app);
   const { hasAnyPerm, isPlatformAdmin } = usePermission();
 
   // WebSocket 全局连接生命周期：token 存在时自动建立连接
   useWebSocketLifecycle();
 
-  // 有 token 但无用户信息（如刷新页面/StrictMode 重挂）时自动补拉当前用户与权限点，
-  // 否则权限过滤会把所有菜单隐藏、hasPerm 全部失效
+  // 有 token 但无用户信息（如刷新页面）时补拉权限；失败后不再自动循环请求
   useEffect(() => {
-    if (token && !currentUser) {
+    if (token && !currentUser && profileStatus === 'idle') {
       dispatch(fetchCurrentUser());
     }
-  }, [token, currentUser, dispatch]);
+  }, [token, currentUser, profileStatus, dispatch]);
 
   const { data, isLoading } = useListClustersQuery(undefined, {
     skip: !token,
@@ -147,7 +123,14 @@ const BasicLayout: React.FC = () => {
     }
   }, [clusters, selectedClusterCode, dispatch]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await request.post('/auth/logout', {
+        refresh_token: localStorage.getItem('refresh_token') || undefined,
+      });
+    } catch {
+      // 服务端吊销失败仍清本地会话
+    }
     dispatch(logout());
     message.success('已退出登录');
     navigate('/login', { replace: true });
@@ -290,7 +273,7 @@ const BasicLayout: React.FC = () => {
       collapsed={collapsed}
       route={filteredRoute}
       menuItemRender={(itemProps, defaultDom) => {
-        return <a onClick={() => navigate(itemProps.path || '/')}>{defaultDom}</a>;
+        return <Link to={itemProps.path || '/'}>{defaultDom}</Link>;
       }}
       avatarProps={{
         src: currentUser?.avatar,

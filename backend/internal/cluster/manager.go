@@ -12,17 +12,17 @@ import (
 	"github.com/k8s-platform/console/pkg/crypto"
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/kubeconfig"
+	"gorm.io/gorm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"gorm.io/gorm"
 )
 
 type PingResult struct {
-	ServerVersion string        `json:"server_version"`
-	NodeCount     int           `json:"node_count"`
-	CostMs        int64         `json:"cost_ms"`
+	ServerVersion string `json:"server_version"`
+	NodeCount     int    `json:"node_count"`
+	CostMs        int64  `json:"cost_ms"`
 }
 
 type ListResult struct {
@@ -225,6 +225,17 @@ func (m *Manager) GetByCode(clusterCode string) (*models.Cluster, error) {
 }
 
 func (m *Manager) List(page, size int, keyword string) (*ListResult, error) {
+	return m.list(page, size, keyword, nil)
+}
+
+func (m *Manager) ListInCodes(page, size int, keyword string, codes []string) (*ListResult, error) {
+	if len(codes) == 0 {
+		return &ListResult{Total: 0, Items: []models.Cluster{}}, nil
+	}
+	return m.list(page, size, keyword, codes)
+}
+
+func (m *Manager) list(page, size int, keyword string, onlyCodes []string) (*ListResult, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -236,6 +247,9 @@ func (m *Manager) List(page, size int, keyword string) (*ListResult, error) {
 	}
 
 	query := m.DB.Model(&models.Cluster{})
+	if len(onlyCodes) > 0 {
+		query = query.Where("code IN ?", onlyCodes)
+	}
 	if keyword != "" {
 		kw := "%" + keyword + "%"
 		query = query.Where("name ILIKE ? OR code ILIKE ? OR COALESCE(description,'') ILIKE ?", kw, kw, kw)

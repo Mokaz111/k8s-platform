@@ -4,6 +4,8 @@ import { AppDispatch } from '@/app/store';
 
 export type ScopeType = 'platform' | 'cluster' | 'namespace';
 
+export type ProfileStatus = 'idle' | 'loading' | 'ready' | 'failed';
+
 // 当前用户的角色绑定信息（含数据范围）
 export interface CurrentUserRole {
   role_id: number;
@@ -35,6 +37,7 @@ export interface UserState {
   token: string | null;
   refreshToken: string | null;
   currentUser: CurrentUser | null;
+  profileStatus: ProfileStatus;
 }
 
 // 防御历史 bug 写入的脏值 "undefined"（旧版本曾以错误字段名存入 undefined）
@@ -47,6 +50,7 @@ const initialState: UserState = {
   token: readStoredToken('token'),
   refreshToken: readStoredToken('refresh_token'),
   currentUser: null,
+  profileStatus: 'idle',
 };
 
 // 后端统一响应 envelope（request.ts 不做解包，这里手动取 data 字段）
@@ -106,6 +110,10 @@ const userSlice = createSlice({
       state.token = action.payload;
       persistToken('token', action.payload);
     },
+    setRefreshToken(state, action: PayloadAction<string | null>) {
+      state.refreshToken = action.payload;
+      persistToken('refresh_token', action.payload);
+    },
     setCurrentUser(state, action: PayloadAction<CurrentUser | null>) {
       state.currentUser = action.payload;
     },
@@ -113,6 +121,7 @@ const userSlice = createSlice({
       state.token = null;
       state.refreshToken = null;
       state.currentUser = null;
+      state.profileStatus = 'idle';
       localStorage.removeItem('token');
       localStorage.removeItem('refresh_token');
     },
@@ -125,15 +134,20 @@ const userSlice = createSlice({
         persistToken('token', state.token);
         persistToken('refresh_token', state.refreshToken);
         // 登录响应仅含 UserBrief（无 perms），完整信息由 fetchCurrentUser 补全
-        if (action.payload.user) {
-          state.currentUser = action.payload.user;
-        }
+        state.profileStatus = 'loading';
+      })
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.profileStatus = 'loading';
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.currentUser = action.payload;
+        state.profileStatus = 'ready';
+      })
+      .addCase(fetchCurrentUser.rejected, (state) => {
+        state.profileStatus = 'failed';
       });
   },
 });
 
-export const { setToken, setCurrentUser, logout } = userSlice.actions;
+export const { setToken, setRefreshToken, setCurrentUser, logout } = userSlice.actions;
 export default userSlice.reducer;

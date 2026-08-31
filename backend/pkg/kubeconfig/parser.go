@@ -75,6 +75,10 @@ func Parse(raw []byte) (*ParseResult, error) {
 			fmt.Sprintf("user %q 不存在", ctx.AuthInfo))
 	}
 
+	if err := rejectInsecureAuth(cfg); err != nil {
+		return nil, err
+	}
+
 	if !hasAuthMethod(authInfo) {
 		return nil, errcode.New(errcode.KubeconfigInvalid,
 			"kubeconfig user 未提供任何认证方式（token/client-cert/username）")
@@ -112,12 +116,28 @@ func Parse(raw []byte) (*ParseResult, error) {
 	return result, nil
 }
 
+func rejectInsecureAuth(cfg *clientcmdapi.Config) error {
+	for name, a := range cfg.AuthInfos {
+		if a == nil {
+			continue
+		}
+		if a.Exec != nil {
+			return errcode.New(errcode.KubeconfigInvalid,
+				fmt.Sprintf("拒绝 user %q 的 exec 认证插件", name))
+		}
+		if a.AuthProvider != nil {
+			return errcode.New(errcode.KubeconfigInvalid,
+				fmt.Sprintf("拒绝 user %q 的 auth-provider 认证插件", name))
+		}
+	}
+	return nil
+}
+
 func hasAuthMethod(a *clientcmdapi.AuthInfo) bool {
 	return a.Token != "" ||
 		a.TokenFile != "" ||
 		a.ClientCertificate != "" || a.ClientCertificateData != nil ||
-		(a.Username != "" && a.Password != "") ||
-		a.AuthProvider != nil || a.Exec != nil
+		(a.Username != "" && a.Password != "")
 }
 
 func resolveCertPEM(a *clientcmdapi.AuthInfo) []byte {

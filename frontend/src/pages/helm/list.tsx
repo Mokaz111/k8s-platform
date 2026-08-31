@@ -38,7 +38,7 @@ import {
   useUninstallReleaseMutation,
 } from '@/app/services/helm';
 import { useListClustersQuery } from '@/app/services/cluster';
-import { useListNamespacesQuery } from '@/app/services/resource';
+import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
@@ -122,17 +122,20 @@ const HelmList: React.FC = () => {
     }
   }, [selectedClusterCode, clusterCode]);
 
-  const { data: namespaceData } = useListNamespacesQuery(clusterCode || '', {
-    skip: !clusterCode,
-    refetchOnMountOrArgChange: true,
-  });
+  const { namespaces: namespaceData, isFullCluster } = useAllowedNamespaces(clusterCode);
   const namespaceOptions = useMemo(() => {
-    const base = namespaceData || ['default'];
-    return [
-      { label: '（全部命名空间）', value: '' },
-      ...base.map((n) => ({ label: n, value: n })),
-    ];
-  }, [namespaceData]);
+    const opts = namespaceData.map((n) => ({ label: n, value: n }));
+    if (isFullCluster) {
+      return [{ label: '（全部命名空间）', value: '' }, ...opts];
+    }
+    return opts;
+  }, [namespaceData, isFullCluster]);
+
+  useEffect(() => {
+    if (!isFullCluster && namespaceData.length > 0 && !namespaceData.includes(namespace)) {
+      setNamespace(namespaceData[0]);
+    }
+  }, [isFullCluster, namespaceData, namespace]);
 
   const listParams = useMemo(
     () => ({
@@ -143,7 +146,7 @@ const HelmList: React.FC = () => {
   );
 
   const { data, refetch, isFetching } = useListReleasesQuery(listParams, {
-    skip: !clusterCode,
+    skip: !canView || !clusterCode || (!isFullCluster && !namespace),
     refetchOnMountOrArgChange: true,
   });
   const [installRelease, { isLoading: installLoading }] = useInstallReleaseMutation();
