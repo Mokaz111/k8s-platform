@@ -13,8 +13,6 @@ import {
 } from 'antd';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
-import Editor from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
 import {
   CloudServerOutlined,
   CodeOutlined,
@@ -40,70 +38,11 @@ import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
 import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 import { PodLogsViewer } from '@/components/ws';
-// 本地 Monaco 加载配置（替代 CDN，离线环境可用）
-import '@/app/monaco';
+import { YamlEditor } from '@/components/YamlEditor';
+import { ALL_KINDS_MAP, KIND_GROUPS, type ResourceTab } from '@/constants/k8sKinds';
+import { getWorkloadStatus } from '@/utils/workloadStatus';
 
 dayjs.extend(relativeTime);
-
-type ResourceTab = 'workload' | 'network' | 'config' | 'storage';
-
-interface KindGroup {
-  key: ResourceTab;
-  label: string;
-  kinds: { label: string; value: string; apiVersion: string; clusterScoped?: boolean }[];
-}
-
-const KIND_GROUPS: KindGroup[] = [
-  {
-    key: 'workload',
-    label: '工作负载',
-    kinds: [
-      { label: 'Deployment', value: 'Deployment', apiVersion: 'apps/v1' },
-      { label: 'StatefulSet', value: 'StatefulSet', apiVersion: 'apps/v1' },
-      { label: 'DaemonSet', value: 'DaemonSet', apiVersion: 'apps/v1' },
-      { label: 'Job', value: 'Job', apiVersion: 'batch/v1' },
-      { label: 'CronJob', value: 'CronJob', apiVersion: 'batch/v1' },
-      { label: 'Pod', value: 'Pod', apiVersion: 'v1' },
-    ],
-  },
-  {
-    key: 'network',
-    label: '网络',
-    kinds: [
-      { label: 'Service', value: 'Service', apiVersion: 'v1' },
-      { label: 'Ingress', value: 'Ingress', apiVersion: 'networking.k8s.io/v1' },
-      { label: 'NetworkPolicy', value: 'NetworkPolicy', apiVersion: 'networking.k8s.io/v1' },
-      { label: 'Endpoints', value: 'Endpoints', apiVersion: 'v1' },
-    ],
-  },
-  {
-    key: 'config',
-    label: '配置',
-    kinds: [
-      { label: 'ConfigMap', value: 'ConfigMap', apiVersion: 'v1' },
-      { label: 'Secret', value: 'Secret', apiVersion: 'v1' },
-      { label: 'Namespace', value: 'Namespace', apiVersion: 'v1', clusterScoped: true },
-      { label: 'ServiceAccount', value: 'ServiceAccount', apiVersion: 'v1' },
-      { label: 'ResourceQuota', value: 'ResourceQuota', apiVersion: 'v1' },
-      { label: 'LimitRange', value: 'LimitRange', apiVersion: 'v1' },
-    ],
-  },
-  {
-    key: 'storage',
-    label: '存储',
-    kinds: [
-      { label: 'PersistentVolume', value: 'PersistentVolume', apiVersion: 'v1', clusterScoped: true },
-      { label: 'PersistentVolumeClaim', value: 'PersistentVolumeClaim', apiVersion: 'v1' },
-      { label: 'StorageClass', value: 'StorageClass', apiVersion: 'storage.k8s.io/v1', clusterScoped: true },
-      { label: 'VolumeAttachment', value: 'VolumeAttachment', apiVersion: 'storage.k8s.io/v1', clusterScoped: true },
-    ],
-  },
-];
-
-const ALL_KINDS_MAP: Record<string, { apiVersion: string; clusterScoped?: boolean }> = {};
-KIND_GROUPS.forEach((g) =>
-  g.kinds.forEach((k) => (ALL_KINDS_MAP[k.value] = { apiVersion: k.apiVersion, clusterScoped: k.clusterScoped })),
-);
 
 const CLUSTER_SCOPED_NS = '__cluster__';
 
@@ -196,7 +135,6 @@ const ResourceList: React.FC = () => {
   // 创建资源 Drawer
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [createYaml, setCreateYaml] = useState<string>('');
-  const editorMountRef = React.useRef<editor.IStandaloneCodeEditor | null>(null);
 
   // Pod 日志 Drawer
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
@@ -410,6 +348,22 @@ const ResourceList: React.FC = () => {
         render: (_dom, record) => record.metadata?.namespace || <Tag>（集群级）</Tag>,
       },
       {
+        title: '状态',
+        key: 'status',
+        width: 180,
+        render: (_dom, record) => {
+          const st = getWorkloadStatus(kind, record);
+          return (
+            <Space direction="vertical" size={0}>
+              <Tag color={st.color}>{st.text}</Tag>
+              {st.extra && (
+                <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>{st.extra}</span>
+              )}
+            </Space>
+          );
+        },
+      },
+      {
         title: 'Age',
         dataIndex: ['metadata', 'creationTimestamp'],
         key: 'age',
@@ -578,31 +532,6 @@ const ResourceList: React.FC = () => {
 
   const emptyCluster = !clusterCode;
 
-  const handleEditorBeforeMount = useCallback(
-    (monaco: typeof import('monaco-editor')) => {
-      (monaco.languages as unknown as {
-        yaml?: {
-          yamlDefaults?: {
-            setDiagnosticsOptions?: (opts: { validate: boolean; enableSchemaRequest: boolean; hover: boolean; completion: boolean; schemas: unknown[] }) => void;
-          };
-        };
-      }).yaml?.yamlDefaults?.setDiagnosticsOptions?.({
-        validate: true,
-        enableSchemaRequest: false,
-        hover: true,
-        completion: true,
-        schemas: [],
-      });
-      monaco.editor.defineTheme('kube-create-yaml', {
-        base: 'vs',
-        inherit: true,
-        rules: [],
-        colors: {},
-      });
-    },
-    [],
-  );
-
   return (
     <PageContainer>
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -699,7 +628,7 @@ const ResourceList: React.FC = () => {
               setSize(s);
             },
           }}
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1480 }}
           options={{
             reload: handleReload,
             density: true,
@@ -739,29 +668,12 @@ const ResourceList: React.FC = () => {
           </Space>
         }
       >
-        <div style={{ height: 'calc(100vh - 220px)', minHeight: 500 }}>
-          <Editor
-            height="100%"
-            defaultLanguage="yaml"
-            language="yaml"
-            theme="kube-create-yaml"
-            value={createYaml}
-            onChange={(v) => setCreateYaml(v || '')}
-            onMount={(ed) => (editorMountRef.current = ed)}
-            beforeMount={handleEditorBeforeMount}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              lineNumbers: 'on',
-              automaticLayout: true,
-              scrollBeyondLastLine: false,
-              renderWhitespace: 'boundary',
-              tabSize: 2,
-              insertSpaces: true,
-              wordWrap: 'on',
-            }}
-          />
-        </div>
+        <YamlEditor
+          value={createYaml}
+          onChange={setCreateYaml}
+          height="calc(100vh - 220px)"
+          editorKey={`create-${kind}`}
+        />
       </Drawer>
 
       <Drawer

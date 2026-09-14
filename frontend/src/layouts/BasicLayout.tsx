@@ -18,6 +18,7 @@ import {
   TeamOutlined,
   AuditOutlined,
   ThunderboltOutlined,
+  DiffOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { logout, fetchCurrentUser } from '@/slices/userSlice';
@@ -203,7 +204,7 @@ const BasicLayout: React.FC = () => {
             ],
           },
           {
-            path: '/pods',
+            path: '/ops',
             name: '运维工具',
             icon: <FileTextOutlined />,
             routes: [
@@ -211,6 +212,11 @@ const BasicLayout: React.FC = () => {
                 path: '/pods/logs',
                 name: 'Pod 日志',
                 icon: <FileTextOutlined />,
+              },
+              {
+                path: '/ops/compare',
+                name: '跨集群对比',
+                icon: <DiffOutlined />,
               },
             ],
           },
@@ -252,6 +258,11 @@ const BasicLayout: React.FC = () => {
                 path: '/helm/list',
                 name: 'Release 列表',
                 icon: <ThunderboltOutlined />,
+              },
+              {
+                path: '/helm/repos',
+                name: '制品仓库',
+                icon: <DatabaseOutlined />,
               },
             ],
           },

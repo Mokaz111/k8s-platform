@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -26,9 +20,6 @@ import {
   message,
 } from 'antd';
 import { PageContainer } from '@ant-design/pro-components';
-import Editor, { DiffEditor } from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
-import { dump as yamlDump, load as yamlLoad } from 'js-yaml';
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
@@ -54,8 +45,9 @@ import {
 import { useAppDispatch } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
-// 本地 Monaco 加载配置（替代 CDN，离线环境可用）
-import '@/app/monaco';
+import { YamlDiffEditor, YamlEditor } from '@/components/YamlEditor';
+import { resourceToYaml, tryParseYaml } from '@/utils/yaml';
+import { getWorkloadStatus } from '@/utils/workloadStatus';
 
 interface EditPageParams {
   code: string;
@@ -65,22 +57,7 @@ interface EditPageParams {
   apiVersion?: string;
 }
 
-const yamlStringify = (obj: unknown): string => {
-  if (typeof obj === 'string') return obj;
-  try {
-    return yamlDump(obj);
-  } catch {
-    return JSON.stringify(obj, null, 2);
-  }
-};
-
-const tryParseYaml = (text: string): unknown | null => {
-  try {
-    return yamlLoad(text);
-  } catch {
-    return null;
-  }
-};
+const yamlStringify = (obj: unknown): string => resourceToYaml(obj);
 
 const ResourceEdit: React.FC = () => {
   const params = useParams<keyof EditPageParams>();
@@ -113,6 +90,8 @@ const ResourceEdit: React.FC = () => {
     data: resource,
     refetch: refetchResource,
     isFetching: resourceLoading,
+    isError: resourceError,
+    error: resourceErr,
   } = useGetResourceQuery(
     { code, apiVersion: apiVersionPath, kind, namespace, name },
     { skip: !code || !kind || !name },
@@ -124,7 +103,6 @@ const ResourceEdit: React.FC = () => {
   const canRollback = hasPerm('version:rollback') || canUpdate;
   const [yamlValue, setYamlValue] = useState<string>('');
   const [originalYaml, setOriginalYaml] = useState<string>('');
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     if (resource) {
@@ -133,35 +111,6 @@ const ResourceEdit: React.FC = () => {
       setOriginalYaml(y);
     }
   }, [resource]);
-
-  const handleEditorMount = (ed: editor.IStandaloneCodeEditor) => {
-    editorRef.current = ed;
-  };
-
-  const handleEditorWillMount = useCallback(
-    (monaco: typeof import('monaco-editor')) => {
-      (monaco.languages as unknown as {
-        yaml?: {
-          yamlDefaults?: {
-            setDiagnosticsOptions?: (opts: { validate: boolean; enableSchemaRequest: boolean; hover: boolean; completion: boolean; schemas: unknown[] }) => void;
-          };
-        };
-      }).yaml?.yamlDefaults?.setDiagnosticsOptions?.({
-        validate: true,
-        enableSchemaRequest: false,
-        hover: true,
-        completion: true,
-        schemas: [],
-      });
-      monaco.editor.defineTheme('kube-yaml', {
-        base: 'vs',
-        inherit: true,
-        rules: [],
-        colors: {},
-      });
-    },
-    [],
-  );
 
   const [updateResource, { isLoading: updateLoading }] = useUpdateResourceMutation();
   const [deleteResource] = useDeleteResourceMutation();
@@ -306,6 +255,7 @@ const ResourceEdit: React.FC = () => {
 
   const metadata: KubernetesResource['metadata'] | undefined = resource?.metadata;
   const creationTs = metadata?.creationTimestamp;
+  const statusView = resource ? getWorkloadStatus(kind, resource) : null;
 
   return (
     <PageContainer
@@ -316,6 +266,7 @@ const ResourceEdit: React.FC = () => {
           <span>
             {kind} / {name}
           </span>
+          {statusView && <Tag color={statusView.color}>{statusView.text}</Tag>}
           <Tag color="blue">集群 {code}</Tag>
           {namespace && <Tag>{namespace}</Tag>}
         </Space>
@@ -381,38 +332,30 @@ const ResourceEdit: React.FC = () => {
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 size="small"
+                className="yaml-resource-tabs"
                 style={{ height: '100%' }}
                 items={[
                   {
                     key: 'yaml',
                     label: 'YAML',
                     children: (
-                      <div style={{ height: 'calc(100% - 44px)' }}>
+                      <div style={{ height: '100%', minHeight: 420 }}>
                         {resourceLoading && !resource ? (
                           <Empty description="加载中..." />
+                        ) : resourceError ? (
+                          <Empty
+                            description={
+                              (resourceErr as { message?: string })?.message ||
+                              '加载资源 YAML 失败'
+                            }
+                          />
                         ) : (
-                          <Editor
-                            height="100%"
-                            defaultLanguage="yaml"
-                            language="yaml"
-                            theme="kube-yaml"
+                          <YamlEditor
                             value={yamlValue}
-                            onChange={(v) => setYamlValue(v || '')}
-                            onMount={handleEditorMount}
-                            beforeMount={handleEditorWillMount}
-                            loading={<Empty description="加载编辑器..." />}
-                            options={{
-                              minimap: { enabled: false },
-                              fontSize: 13,
-                              lineNumbers: 'on',
-                              automaticLayout: true,
-                              scrollBeyondLastLine: false,
-                              renderWhitespace: 'boundary',
-                              tabSize: 2,
-                              insertSpaces: true,
-                              wordWrap: 'on',
-                              readOnly: !canUpdate,
-                            }}
+                            onChange={setYamlValue}
+                            readOnly={!canUpdate}
+                            height="calc(100vh - 360px)"
+                            editorKey={resource?.metadata?.uid || `${kind}/${name}`}
                           />
                         )}
                       </div>
@@ -525,6 +468,20 @@ const ResourceEdit: React.FC = () => {
                 <Descriptions.Item label="Kind">
                   <Tag color="blue">{kind}</Tag>
                 </Descriptions.Item>
+                <Descriptions.Item label="状态">
+                  {statusView ? (
+                    <Space direction="vertical" size={0}>
+                      <Tag color={statusView.color}>{statusView.text}</Tag>
+                      {statusView.extra && (
+                        <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
+                          {statusView.extra}
+                        </span>
+                      )}
+                    </Space>
+                  ) : (
+                    '-'
+                  )}
+                </Descriptions.Item>
                 <Descriptions.Item label="Name">{metadata?.name || '-'}</Descriptions.Item>
                 <Descriptions.Item label="Namespace">
                   {namespace || <Tag>集群级</Tag>}
@@ -607,22 +564,10 @@ const ResourceEdit: React.FC = () => {
           <Empty description="加载 Diff 中..." />
         ) : (
           <div style={{ height: 'calc(100vh - 200px)' }}>
-            <DiffEditor
-              height="100%"
+            <YamlDiffEditor
               original={diffLeft}
               modified={diffRight}
-              originalLanguage="yaml"
-              modifiedLanguage="yaml"
-              theme="kube-yaml"
-              beforeMount={handleEditorWillMount}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 13,
-                readOnly: true,
-                automaticLayout: true,
-                renderSideBySide: true,
-                wordWrap: 'on',
-              }}
+              height="calc(100vh - 200px)"
             />
           </div>
         )}

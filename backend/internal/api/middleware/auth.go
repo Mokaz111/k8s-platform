@@ -57,6 +57,12 @@ var routePermExact = map[string]string{
 	"GET /api/v1/clusters/:code/helm/releases/:namespace/:name/history":   "helm:view",
 	"GET /api/v1/clusters/:code/helm/check":                               "helm:view",
 
+	"GET /api/v1/helm/repos":          "helm:view",
+	"POST /api/v1/helm/repos":         "helm:install",
+	"DELETE /api/v1/helm/repos/:name": "helm:install",
+	"POST /api/v1/helm/repos/update":  "helm:install",
+	"GET /api/v1/helm/charts":         "helm:view",
+
 	"GET /api/v1/clusters/:code/pods/:namespace/:pod/logs": "cluster:list",
 
 	"GET /api/v1/users":                     "user:manage",

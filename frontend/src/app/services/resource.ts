@@ -137,6 +137,7 @@ export const resourceApi = createApi({
 export const {
   useListResourcesQuery,
   useGetResourceQuery,
+  useLazyGetResourceQuery,
   useCreateResourceMutation,
   useUpdateResourceMutation,
   useDeleteResourceMutation,

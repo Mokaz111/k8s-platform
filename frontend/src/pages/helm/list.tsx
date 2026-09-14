@@ -42,6 +42,7 @@ import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
 import { usePermission } from '@/hooks/usePermission';
+import { useSearchParams } from 'react-router-dom';
 
 dayjs.extend(relativeTime);
 
@@ -95,6 +96,7 @@ const HelmList: React.FC = () => {
   const dispatch = useAppDispatch();
   const actionRef = React.useRef<ActionType>();
   const selectedClusterCode = useAppSelector((s) => s.app.selectedClusterCode);
+  const [searchParams] = useSearchParams();
   const { hasPerm } = usePermission();
   const canView = hasPerm('helm:view');
   const canInstall = hasPerm('helm:install');
@@ -178,15 +180,23 @@ const HelmList: React.FC = () => {
     installForm.setFieldsValue({
       release_name: '',
       namespace: namespace || 'default',
-      chart_ref: '',
+      chart_ref: searchParams.get('chart_ref') || '',
       repo_url: '',
-      version: '',
+      version: searchParams.get('version') || '',
       values: DEFAULT_VALUES_YAML,
       wait: false,
       dry_run: false,
     });
     setInstallOpen(true);
   };
+
+  useEffect(() => {
+    if (searchParams.get('chart_ref') && clusterCode && canInstall) {
+      openInstallDrawer();
+    }
+    // 仅在带 chart_ref 进入页面时自动打开一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clusterCode]);
 
   const handleInstallConfirm = async () => {
     if (!clusterCode) return;

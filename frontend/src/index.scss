@@ -8,6 +8,13 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-#nprogress .bar {
-  background: #1677ff !important;
+.yaml-editor-host {
+  width: 100%;
+}
+
+.yaml-resource-tabs,
+.yaml-resource-tabs .ant-tabs-content-holder,
+.yaml-resource-tabs .ant-tabs-content,
+.yaml-resource-tabs .ant-tabs-tabpane-active {
+  height: 100%;
 }

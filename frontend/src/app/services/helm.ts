@@ -46,12 +46,31 @@ export interface HelmHistoryItem {
   updated: string;
 }
 
+export interface HelmRepo {
+  name: string;
+  url: string;
+}
+
+export interface AddRepoBody {
+  name: string;
+  url: string;
+  username?: string;
+  password?: string;
+}
+
+export interface HelmChart {
+  name: string;
+  version: string;
+  app_version: string;
+  description: string;
+}
+
 const enc = (s: string): string => encodeURIComponent(s);
 
 export const helmApi = createApi({
   reducerPath: 'helmApi',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['HelmRelease'],
+  tagTypes: ['HelmRelease', 'HelmRepo', 'HelmChart'],
   endpoints: (builder) => ({
     listReleases: builder.query<ListReleasesResponse, ListReleasesParams>({
       query: ({ clusterCode, namespace }) => ({
@@ -99,6 +118,59 @@ export const helmApi = createApi({
         method: 'GET',
       }),
     }),
+    listRepos: builder.query<{ items: HelmRepo[]; total: number }, void>({
+      query: () => ({
+        url: '/helm/repos',
+        method: 'GET',
+      }),
+      providesTags: [{ type: 'HelmRepo', id: 'LIST' }],
+    }),
+    addRepo: builder.mutation<{ ok: boolean }, AddRepoBody>({
+      query: (body) => ({
+        url: '/helm/repos',
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: [
+        { type: 'HelmRepo', id: 'LIST' },
+        { type: 'HelmChart', id: 'LIST' },
+      ],
+    }),
+    removeRepo: builder.mutation<{ ok: boolean }, string>({
+      query: (name) => ({
+        url: `/helm/repos/${enc(name)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        { type: 'HelmRepo', id: 'LIST' },
+        { type: 'HelmChart', id: 'LIST' },
+      ],
+    }),
+    updateRepos: builder.mutation<{ ok: boolean }, { name?: string } | void>({
+      query: (arg) => ({
+        url: '/helm/repos/update',
+        method: 'POST',
+        params: arg && arg.name ? { name: arg.name } : undefined,
+      }),
+      invalidatesTags: [
+        { type: 'HelmRepo', id: 'LIST' },
+        { type: 'HelmChart', id: 'LIST' },
+      ],
+    }),
+    searchCharts: builder.query<
+      { items: HelmChart[]; total: number },
+      { repo?: string; keyword?: string }
+    >({
+      query: ({ repo, keyword }) => ({
+        url: '/helm/charts',
+        method: 'GET',
+        params: {
+          repo: repo || undefined,
+          keyword: keyword || undefined,
+        },
+      }),
+      providesTags: [{ type: 'HelmChart', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -108,4 +180,9 @@ export const {
   useUninstallReleaseMutation,
   useRollbackReleaseMutation,
   useListHistoryQuery,
+  useListReposQuery,
+  useAddRepoMutation,
+  useRemoveRepoMutation,
+  useUpdateReposMutation,
+  useSearchChartsQuery,
 } = helmApi;

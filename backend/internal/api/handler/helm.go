@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/k8s-platform/console/internal/api/middleware"
@@ -10,6 +10,14 @@ import (
 	"github.com/k8s-platform/console/pkg/errcode"
 	"github.com/k8s-platform/console/pkg/response"
 )
+
+func failHelm(c *gin.Context, err error, fallback string) {
+	if ec, ok := err.(*errcode.Error); ok {
+		response.Fail(c, ec)
+		return
+	}
+	response.Fail(c, errcode.Wrap(errcode.Internal, err, fallback))
+}
 
 type HelmHandler struct {
 	Mgr *helm.Manager
@@ -84,7 +92,7 @@ func (h *HelmHandler) InstallRelease(c *gin.Context) {
 
 	out, err := h.Mgr.Install(c.Request.Context(), req)
 	if err != nil {
-		response.Fail(c, errcode.Wrap(errcode.Internal, err, "Helm install/upgrade 失败"))
+		failHelm(c, err, "Helm install/upgrade 失败")
 		return
 	}
 	response.OK(c, gin.H{"output": out})
@@ -161,10 +169,61 @@ func (h *HelmHandler) ListHistory(c *gin.Context) {
 
 // CheckHelmCLI checks if helm CLI binary is available
 func (h *HelmHandler) CheckHelmCLI(c *gin.Context) {
-	// Quick check: helm version
-	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
-		"message": "ok",
-		"data":    gin.H{"available": true},
-	})
+	ok, versionOrErr := h.Mgr.CheckCLI(c.Request.Context())
+	if !ok {
+		response.OK(c, gin.H{"available": false, "error": versionOrErr})
+		return
+	}
+	response.OK(c, gin.H{"available": true, "version": versionOrErr})
+}
+
+func (h *HelmHandler) ListRepos(c *gin.Context) {
+	repos, err := h.Mgr.ListRepos(c.Request.Context())
+	if err != nil {
+		failHelm(c, err, "查询 Helm 仓库失败")
+		return
+	}
+	response.OK(c, gin.H{"items": repos, "total": len(repos)})
+}
+
+func (h *HelmHandler) AddRepo(c *gin.Context) {
+	var req helm.AddRepoInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, errcode.Wrap(errcode.InvalidArgument, err, "请求体解析失败"))
+		return
+	}
+	if err := h.Mgr.AddRepo(c.Request.Context(), req); err != nil {
+		failHelm(c, err, "添加 Helm 仓库失败")
+		return
+	}
+	response.OK(c, gin.H{"ok": true})
+}
+
+func (h *HelmHandler) RemoveRepo(c *gin.Context) {
+	name := c.Param("name")
+	if err := h.Mgr.RemoveRepo(c.Request.Context(), name); err != nil {
+		failHelm(c, err, "删除 Helm 仓库失败")
+		return
+	}
+	response.OK(c, gin.H{"ok": true})
+}
+
+func (h *HelmHandler) UpdateRepos(c *gin.Context) {
+	name := strings.TrimSpace(c.Query("name"))
+	if err := h.Mgr.UpdateRepos(c.Request.Context(), name); err != nil {
+		failHelm(c, err, "更新 Helm 仓库索引失败")
+		return
+	}
+	response.OK(c, gin.H{"ok": true})
+}
+
+func (h *HelmHandler) SearchCharts(c *gin.Context) {
+	repo := strings.TrimSpace(c.Query("repo"))
+	keyword := strings.TrimSpace(c.Query("keyword"))
+	charts, err := h.Mgr.SearchCharts(c.Request.Context(), repo, keyword)
+	if err != nil {
+		failHelm(c, err, "搜索 Chart 失败")
+		return
+	}
+	response.OK(c, gin.H{"items": charts, "total": len(charts)})
 }

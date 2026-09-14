@@ -7,6 +7,26 @@ import (
 )
 
 func RegisterHelmRoutes(rg *gin.RouterGroup, h *handler.HelmHandler) {
+	// 平台级制品仓库（helm repo），不绑定具体集群
+	repos := rg.Group("/helm")
+	{
+		repos.GET("/repos",
+			middleware.RequirePermission("helm:view"),
+			h.ListRepos)
+		repos.POST("/repos",
+			middleware.RequirePermission("helm:install"),
+			h.AddRepo)
+		repos.DELETE("/repos/:name",
+			middleware.RequirePermission("helm:install"),
+			h.RemoveRepo)
+		repos.POST("/repos/update",
+			middleware.RequirePermission("helm:install"),
+			h.UpdateRepos)
+		repos.GET("/charts",
+			middleware.RequirePermission("helm:view"),
+			h.SearchCharts)
+	}
+
 	helm := rg.Group("/clusters/:code/helm")
 	{
 		// 列出 Helm releases
