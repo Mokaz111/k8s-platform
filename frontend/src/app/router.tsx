@@ -23,6 +23,8 @@ const AuditLogList = lazy(() => import('@/pages/audit/list'));
 const UserList = lazy(() => import('@/pages/users/list'));
 const RoleList = lazy(() => import('@/pages/roles/list'));
 const HelmList = lazy(() => import('@/pages/helm/list'));
+const HelmRepos = lazy(() => import('@/pages/helm/repos'));
+const ClusterCompare = lazy(() => import('@/pages/ops/compare'));
 
 const PageFallback = (
   <div style={{ padding: 80, textAlign: 'center' }}>
@@ -150,6 +152,13 @@ export const router = createBrowserRouter([
         ],
       },
       {
+        path: 'ops',
+        children: [
+          { index: true, element: <Navigate to="/ops/compare" replace /> },
+          { path: 'compare', element: guarded('/ops/compare', <ClusterCompare />) },
+        ],
+      },
+      {
         path: 'rbac',
         children: [
           { index: true, element: <Navigate to="/rbac/users" replace /> },
@@ -169,6 +178,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/helm/list" replace /> },
           { path: 'list', element: guarded('/helm/list', <HelmList />) },
+          { path: 'repos', element: guarded('/helm/repos', <HelmRepos />) },
         ],
       },
     ],

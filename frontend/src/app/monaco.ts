@@ -9,6 +9,7 @@
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import 'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution';
 
 // Vite 环境下 Monaco 的 web worker 通过 ?worker 导入构造
 self.MonacoEnvironment = {
@@ -19,5 +20,6 @@ self.MonacoEnvironment = {
 
 // 让 @monaco-editor/react 使用本地打包的 monaco 实例，而非 CDN
 loader.config({ monaco });
+void loader.init();
 
 export default monaco;

@@ -17,7 +17,9 @@ export const ROUTE_PERMS: Record<string, string[]> = {
   '/audit/list': ['audit:list'],
   '/helm': ['helm:view', 'helm:install', 'helm:uninstall', 'helm:rollback'],
   '/helm/list': ['helm:view'],
+  '/helm/repos': ['helm:view'],
   '/pods/logs': ['resource:get', 'resource:list'],
+  '/ops/compare': ['resource:get'],
 };
 
 export function safeRedirectPath(raw: string | null | undefined): string {

@@ -31,15 +31,15 @@ type HelmRelease struct {
 
 // InstallInput holds parameters for helm install/upgrade
 type InstallInput struct {
-	ClusterCode  string `json:"cluster_code"`
-	ReleaseName  string `json:"release_name"`
-	Namespace    string `json:"namespace"`
-	ChartRef     string `json:"chart_ref"`
-	RepoURL      string `json:"repo_url"`
-	Values       string `json:"values"`
-	Version      string `json:"version"`
-	Wait         bool   `json:"wait"`
-	DryRun       bool   `json:"dry_run"`
+	ClusterCode string `json:"cluster_code"`
+	ReleaseName string `json:"release_name"`
+	Namespace   string `json:"namespace"`
+	ChartRef    string `json:"chart_ref"`
+	RepoURL     string `json:"repo_url"`
+	Values      string `json:"values"`
+	Version     string `json:"version"`
+	Wait        bool   `json:"wait"`
+	DryRun      bool   `json:"dry_run"`
 }
 
 // Manager manages Helm operations
@@ -142,6 +142,12 @@ func (m *Manager) Install(ctx context.Context, in InstallInput) (string, error) 
 	}
 	if in.DryRun {
 		args = append(args, "--dry-run")
+	}
+	if strings.TrimSpace(in.RepoURL) != "" {
+		if err := ValidateRepoURL(in.RepoURL); err != nil {
+			return "", err
+		}
+		args = append(args, "--repo", strings.TrimSpace(in.RepoURL))
 	}
 	if in.Values != "" {
 		valuesPath := filepath.Join(filepath.Dir(kubeconfigPath), "values.yaml")
@@ -255,6 +261,26 @@ func (m *Manager) writeKubeconfig(clusterCode string) (string, func(), error) {
 	}
 	cleanup := func() { _ = os.Remove(path) }
 	return path, cleanup, nil
+}
+
+func (m *Manager) runHelm(ctx context.Context, timeout time.Duration, args ...string) (string, error) {
+	if timeout <= 0 {
+		timeout = 45 * time.Second
+	}
+	cctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	cmd := exec.CommandContext(cctx, "helm", args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return "", fmt.Errorf("%s", msg)
+	}
+	return stdout.String(), nil
 }
 
 func (m *Manager) checkReleaseExists(ctx context.Context, kubeconfigPath, namespace, releaseName string) bool {
