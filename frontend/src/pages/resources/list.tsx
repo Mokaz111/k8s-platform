@@ -385,7 +385,7 @@ const ResourceList: React.FC = () => {
       {
         title: '操作',
         key: 'actions',
-        width: 480,
+        width: 340,
         fixed: 'right',
         render: (_v, item) => {
           const ns = item.metadata?.namespace;
