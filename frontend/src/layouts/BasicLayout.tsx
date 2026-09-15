@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ROUTE_PERMS } from '@/app/routePerms';
 import { ProLayout } from '@ant-design/pro-components';
 import { Avatar, Badge, Dropdown, Select, Space, Tooltip, message } from 'antd';
@@ -97,6 +97,7 @@ const WSStatusBadge: React.FC = () => {
 };
 
 const BasicLayout: React.FC = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentUser, token, profileStatus } = useAppSelector((state) => state.user);
@@ -275,6 +276,7 @@ const BasicLayout: React.FC = () => {
     }),
     [rawRoutes, hasAnyPerm, isPlatformAdmin],
   );
+  const showClusterSwitcher = location.pathname.startsWith('/resources');
 
   return (
     <ProLayout
@@ -290,19 +292,25 @@ const BasicLayout: React.FC = () => {
         src: currentUser?.avatar,
         icon: <UserOutlined />,
       }}
-      actionsRender={() => [
-        <Select
-          key="cluster"
-          style={{ width: 220 }}
-          placeholder="选择集群"
-          value={selectedClusterCode}
-          loading={isLoading}
-          onChange={(value) => dispatch(setSelectedClusterCode(value))}
-          options={clusters.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))}
-          allowClear
-        />,
-        <WSStatusBadge key="ws-status" />,
-      ]}
+      actionsRender={() => {
+        const actions: React.ReactNode[] = [];
+        if (showClusterSwitcher) {
+          actions.push(
+            <Select
+              key="cluster"
+              style={{ width: 220 }}
+              placeholder="选择集群"
+              value={selectedClusterCode}
+              loading={isLoading}
+              onChange={(value) => dispatch(setSelectedClusterCode(value))}
+              options={clusters.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))}
+              allowClear
+            />,
+          );
+        }
+        actions.push(<WSStatusBadge key="ws-status" />);
+        return actions;
+      }}
       rightContentRender={() => [
         <Dropdown key="user" menu={{ items: userMenuItems }} placement="bottomRight">
           <Space style={{ cursor: 'pointer', padding: '0 8px' }}>
