@@ -56,8 +56,9 @@ type diffVersionsReq struct {
 	APIVersion  string `json:"api_version" binding:"required"`
 	Kind        string `json:"kind" binding:"required"`
 	Name        string `json:"name" binding:"required"`
-	SeqA        int    `json:"seq_a" binding:"required,min=1"`
-	SeqB        int    `json:"seq_b" binding:"required,min=1"`
+	// Seq 为 0 表示与集群中的当前对象对比，>0 为历史快照序号
+	SeqA int `json:"seq_a"`
+	SeqB int `json:"seq_b"`
 }
 
 func (h *VersionHandler) DiffVersions(c *gin.Context) {
@@ -100,6 +101,14 @@ func (h *VersionHandler) DiffVersions(c *gin.Context) {
 	if req.ClusterCode == "" || req.APIVersion == "" || req.Kind == "" || req.Name == "" {
 		response.Fail(c, errcode.New(errcode.InvalidArgument,
 			"cluster_code, api_version, kind, name 为必填参数"))
+		return
+	}
+	if req.SeqA < 0 || req.SeqB < 0 {
+		response.Fail(c, errcode.New(errcode.InvalidArgument, "seq_a / seq_b 不能为负数；0 表示当前版本"))
+		return
+	}
+	if req.SeqA == req.SeqB {
+		response.Fail(c, errcode.New(errcode.InvalidArgument, "seq_a 和 seq_b 不能相同"))
 		return
 	}
 

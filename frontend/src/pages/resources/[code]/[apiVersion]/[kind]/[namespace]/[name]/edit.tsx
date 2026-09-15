@@ -23,6 +23,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
+  DiffOutlined,
   HistoryOutlined,
   RollbackOutlined,
   SaveOutlined,
@@ -37,10 +38,12 @@ import {
   useUpdateResourceMutation,
 } from '@/app/services/resource';
 import {
+  CURRENT_VERSION_SEQ,
   ResourceVersion,
   useLazyGetVersionDiffQuery,
   useListVersionsQuery,
   useRollbackVersionMutation,
+  versionSeqLabel,
 } from '@/app/services/version';
 import { useAppDispatch } from '@/app/store';
 import { setSelectedClusterCode } from '@/slices/appSlice';
@@ -176,12 +179,13 @@ const ResourceEdit: React.FC = () => {
     }
   };
 
-  // version compare
+  // version compare；CURRENT_VERSION_SEQ(0) 表示集群当前 YAML
   const [compareDrawerOpen, setCompareDrawerOpen] = useState(false);
   const [checkedSeqs, setCheckedSeqs] = useState<number[]>([]);
   const [diffLeft, setDiffLeft] = useState<string>('');
   const [diffRight, setDiffRight] = useState<string>('');
   const [diffLoaded, setDiffLoaded] = useState(false);
+  const [comparePair, setComparePair] = useState<[number, number] | null>(null);
 
   const toggleSeq = (seq: number) => {
     setCheckedSeqs((prev) => {
@@ -192,24 +196,34 @@ const ResourceEdit: React.FC = () => {
     setDiffLoaded(false);
   };
 
-  const openCompare = () => {
-    if (checkedSeqs.length !== 2) {
-      message.warning('请选择两个版本进行对比');
+  const orderedCompareSeqs = (a: number, b: number): [number, number] => {
+    if (a === CURRENT_VERSION_SEQ || b === CURRENT_VERSION_SEQ) {
+      const history = a === CURRENT_VERSION_SEQ ? b : a;
+      return [history, CURRENT_VERSION_SEQ];
+    }
+    return a < b ? [a, b] : [b, a];
+  };
+
+  const runCompare = (seqA: number, seqB: number) => {
+    if (seqA === seqB) {
+      message.warning('请选择两个不同的版本进行对比');
       return;
     }
+    const [leftSeq, rightSeq] = orderedCompareSeqs(seqA, seqB);
+    setCheckedSeqs([seqA, seqB]);
+    setComparePair([leftSeq, rightSeq]);
     setCompareDrawerOpen(true);
     setDiffLoaded(false);
     setDiffLeft('');
     setDiffRight('');
-    const [a, b] = [...checkedSeqs].sort((x, y) => x - y);
     getVersionDiff({
       code,
       apiVersion: apiVersionPath,
       kind,
       namespace,
       name,
-      seqA: a,
-      seqB: b,
+      seqA: leftSeq,
+      seqB: rightSeq,
     })
       .unwrap()
       .then((res) => {
@@ -218,10 +232,26 @@ const ResourceEdit: React.FC = () => {
         setDiffLoaded(true);
       })
       .catch(() => {
-        setDiffLeft(`# 无法加载版本 #${a} 的 YAML`);
-        setDiffRight(`# 无法加载版本 #${b} 的 YAML`);
+        setDiffLeft(`# 无法加载 ${versionSeqLabel(leftSeq)} 的 YAML`);
+        setDiffRight(`# 无法加载 ${versionSeqLabel(rightSeq)} 的 YAML`);
         setDiffLoaded(true);
       });
+  };
+
+  const selectedHistoryOnly =
+    checkedSeqs.length === 1 && checkedSeqs[0] !== CURRENT_VERSION_SEQ;
+  const canOpenCompare = selectedHistoryOnly || checkedSeqs.length === 2;
+
+  const openCompare = () => {
+    if (selectedHistoryOnly) {
+      runCompare(checkedSeqs[0], CURRENT_VERSION_SEQ);
+      return;
+    }
+    if (checkedSeqs.length === 2) {
+      runCompare(checkedSeqs[0], checkedSeqs[1]);
+      return;
+    }
+    message.warning('请选择一个历史版本与当前对比，或勾选两个版本互相对比');
   };
 
   const handleRollback = async (seq: number) => {
@@ -371,80 +401,133 @@ const ResourceEdit: React.FC = () => {
                     ),
                     children: (
                       <div style={{ height: 'calc(100% - 44px)', overflow: 'auto', padding: 16 }}>
-                        {versionItems.length === 0 ? (
-                          <Empty description="暂无历史版本" />
-                        ) : (
-                          <Space direction="vertical" style={{ width: '100%' }} size="large">
-                            <Space>
-                              <Tooltip title="请选择两个版本进行对比">
-                                <Button
-                                  icon={<FileSearchOutlined />}
-                                  disabled={checkedSeqs.length !== 2}
-                                  onClick={openCompare}
-                                >
-                                  对比已选 {checkedSeqs.length}/2
-                                </Button>
-                              </Tooltip>
-                              <span style={{ color: 'rgba(0,0,0,0.45)' }}>
-                                勾选左侧复选框选择两个版本
-                              </span>
-                            </Space>
+                        <Space direction="vertical" style={{ width: '100%' }} size="large">
+                          <Space wrap>
+                            <Tooltip
+                              title={
+                                selectedHistoryOnly
+                                  ? '将已选历史版本与集群当前 YAML 对比'
+                                  : '勾选一个历史版本即可与当前对比；也可勾选两个版本互相对比'
+                              }
+                            >
+                              <Button
+                                icon={<FileSearchOutlined />}
+                                disabled={!canOpenCompare}
+                                onClick={openCompare}
+                              >
+                                {selectedHistoryOnly
+                                  ? '与当前版本对比'
+                                  : `对比已选 ${checkedSeqs.length}/2`}
+                              </Button>
+                            </Tooltip>
+                            <span style={{ color: 'rgba(0,0,0,0.45)' }}>
+                              可勾选「当前版本」与任一历史快照，或直接点击「与当前对比」
+                            </span>
+                          </Space>
 
-                            <Timeline
-                              mode="left"
-                              items={versionItems.map((v: ResourceVersion) => ({
-                                color:
-                                  v.source === 'rollback'
-                                    ? 'orange'
-                                    : v.source === 'backup'
-                                      ? 'purple'
-                                      : 'blue',
+                          <Timeline
+                            mode="left"
+                            items={[
+                              {
+                                color: 'green',
                                 children: (
                                   <Card
                                     size="small"
                                     title={
                                       <Space>
                                         <Checkbox
-                                          checked={checkedSeqs.includes(v.version_seq)}
-                                          onChange={() => toggleSeq(v.version_seq)}
+                                          checked={checkedSeqs.includes(CURRENT_VERSION_SEQ)}
+                                          disabled={!resource}
+                                          onChange={() => toggleSeq(CURRENT_VERSION_SEQ)}
                                         >
-                                          <strong># {v.version_seq}</strong>
+                                          <strong>当前版本</strong>
                                         </Checkbox>
-                                        <Tag>{v.change_summary || v.source || 'snapshot'}</Tag>
-                                      </Space>
-                                    }
-                                    extra={
-                                      <Space>
-                                        <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
-                                          {v.created_at
-                                            ? dayjs(v.created_at).format('YYYY-MM-DD HH:mm:ss')
-                                            : ''}
-                                        </span>
-                                        {canRollback && (
-                                        <Button
-                                          type="link"
-                                          size="small"
-                                          icon={<RollbackOutlined />}
-                                          loading={rollbackLoading}
-                                          onClick={() => handleRollback(v.version_seq)}
-                                        >
-                                          回滚到此版本
-                                        </Button>
-                                        )}
+                                        <Tag color="green">live</Tag>
                                       </Space>
                                     }
                                   >
                                     <Descriptions size="small" column={1} bordered>
-                                      <Descriptions.Item label="操作人">
-                                        {v.operator || '-'}
+                                      <Descriptions.Item label="来源">
+                                        集群中的实时对象 YAML
+                                      </Descriptions.Item>
+                                      <Descriptions.Item label="ResourceVersion">
+                                        {metadata?.resourceVersion || '-'}
                                       </Descriptions.Item>
                                     </Descriptions>
                                   </Card>
                                 ),
-                              }))}
-                            />
-                          </Space>
-                        )}
+                              },
+                              ...(versionItems.length === 0
+                                ? [
+                                    {
+                                      color: 'gray',
+                                      children: <Empty description="暂无历史快照" />,
+                                    },
+                                  ]
+                                : versionItems.map((v: ResourceVersion) => ({
+                                    color:
+                                      v.source === 'rollback'
+                                        ? 'orange'
+                                        : v.source === 'backup'
+                                          ? 'purple'
+                                          : 'blue',
+                                    children: (
+                                      <Card
+                                        size="small"
+                                        title={
+                                          <Space>
+                                            <Checkbox
+                                              checked={checkedSeqs.includes(v.version_seq)}
+                                              onChange={() => toggleSeq(v.version_seq)}
+                                            >
+                                              <strong># {v.version_seq}</strong>
+                                            </Checkbox>
+                                            <Tag>{v.change_summary || v.source || 'snapshot'}</Tag>
+                                          </Space>
+                                        }
+                                        extra={
+                                          <Space>
+                                            <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
+                                              {v.created_at
+                                                ? dayjs(v.created_at).format('YYYY-MM-DD HH:mm:ss')
+                                                : ''}
+                                            </span>
+                                            <Button
+                                              type="link"
+                                              size="small"
+                                              icon={<DiffOutlined />}
+                                              disabled={!resource}
+                                              onClick={() =>
+                                                runCompare(v.version_seq, CURRENT_VERSION_SEQ)
+                                              }
+                                            >
+                                              与当前对比
+                                            </Button>
+                                            {canRollback && (
+                                              <Button
+                                                type="link"
+                                                size="small"
+                                                icon={<RollbackOutlined />}
+                                                loading={rollbackLoading}
+                                                onClick={() => handleRollback(v.version_seq)}
+                                              >
+                                                回滚到此版本
+                                              </Button>
+                                            )}
+                                          </Space>
+                                        }
+                                      >
+                                        <Descriptions size="small" column={1} bordered>
+                                          <Descriptions.Item label="操作人">
+                                            {v.operator || '-'}
+                                          </Descriptions.Item>
+                                        </Descriptions>
+                                      </Card>
+                                    ),
+                                  }))),
+                            ]}
+                          />
+                        </Space>
                       </div>
                     ),
                   },
@@ -551,8 +634,8 @@ const ResourceEdit: React.FC = () => {
 
       <Drawer
         title={`版本对比 ${
-          checkedSeqs.length === 2
-            ? `#${Math.min(...checkedSeqs)} ↔ #${Math.max(...checkedSeqs)}`
+          comparePair
+            ? `${versionSeqLabel(comparePair[0])} → ${versionSeqLabel(comparePair[1])}`
             : ''
         }`}
         width="85%"
@@ -563,13 +646,20 @@ const ResourceEdit: React.FC = () => {
         {!diffLoaded || diffLoading ? (
           <Empty description="加载 Diff 中..." />
         ) : (
-          <div style={{ height: 'calc(100vh - 200px)' }}>
-            <YamlDiffEditor
-              original={diffLeft}
-              modified={diffRight}
-              height="calc(100vh - 200px)"
-            />
-          </div>
+          <Space direction="vertical" style={{ width: '100%' }} size="small">
+            <Space>
+              <Tag>{comparePair ? versionSeqLabel(comparePair[0]) : '左侧'}</Tag>
+              <span style={{ color: 'rgba(0,0,0,0.45)' }}>对比到</span>
+              <Tag color="blue">{comparePair ? versionSeqLabel(comparePair[1]) : '右侧'}</Tag>
+            </Space>
+            <div style={{ height: 'calc(100vh - 240px)' }}>
+              <YamlDiffEditor
+                original={diffLeft}
+                modified={diffRight}
+                height="calc(100vh - 240px)"
+              />
+            </div>
+          </Space>
         )}
       </Drawer>
     </PageContainer>

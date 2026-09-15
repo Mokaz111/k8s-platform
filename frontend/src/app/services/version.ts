@@ -35,13 +35,22 @@ export interface ListVersionsResponse {
   total: number;
 }
 
+/** 0 表示集群中的当前对象，而不是历史快照序号 */
+export const CURRENT_VERSION_SEQ = 0;
+
+export function versionSeqLabel(seq: number): string {
+  return seq === CURRENT_VERSION_SEQ ? '当前版本' : `#${seq}`;
+}
+
 export interface GetVersionDiffParams {
   code: string;
   apiVersion: string;
   kind: string;
   namespace?: string;
   name: string;
+  /** 历史序号；0 表示当前集群 YAML */
   seqA: number;
+  /** 历史序号；0 表示当前集群 YAML */
   seqB: number;
 }
 
