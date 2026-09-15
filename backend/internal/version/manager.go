@@ -274,21 +274,78 @@ func (m *Manager) GetVersion(clusterCode, ns, apiVersion, kind, name string, seq
 	return &snap, nil
 }
 
+// CurrentVersionSeq 表示集群中的当前对象，而不是历史快照。
+const CurrentVersionSeq = 0
+
+func (m *Manager) currentResourceYAML(clusterCode, ns, apiVersion, kind, name string) (string, error) {
+	if clusterCode == "" || apiVersion == "" || kind == "" || name == "" {
+		return "", errcode.New(errcode.InvalidArgument, "cluster_code, api_version, kind, name 不能为空")
+	}
+	gv, err := schema.ParseGroupVersion(apiVersion)
+	if err != nil {
+		return "", errcode.Wrap(errcode.InvalidArgument, err, "apiVersion 解析失败")
+	}
+	obj, err := m.ResourceMgr.GetResource(clusterCode, gv.WithKind(kind), ns, name)
+	if err != nil {
+		return "", err
+	}
+	raw, err := objToYAML(obj)
+	if err != nil {
+		return "", errcode.Wrap(errcode.Internal, err, "当前版本 YAML 序列化失败")
+	}
+	return raw, nil
+}
+
+func (m *Manager) yamlBySeq(clusterCode, ns, apiVersion, kind, name string, seq int) (string, error) {
+	if seq < CurrentVersionSeq {
+		return "", errcode.New(errcode.InvalidArgument, "version seq 不能为负数")
+	}
+	if seq == CurrentVersionSeq {
+		return m.currentResourceYAML(clusterCode, ns, apiVersion, kind, name)
+	}
+	snap, err := m.GetVersion(clusterCode, ns, apiVersion, kind, name, seq)
+	if err != nil {
+		return "", err
+	}
+	return snap.RawYAML, nil
+}
+
+func stripManagedFieldsYAML(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(raw), &obj); err != nil {
+		return raw
+	}
+	if meta, ok := obj["metadata"].(map[string]interface{}); ok {
+		delete(meta, "managedFields")
+	}
+	out, err := yaml.Marshal(obj)
+	if err != nil {
+		return raw
+	}
+	return string(out)
+}
+
 func (m *Manager) DiffVersions(clusterCode, ns, apiVersion, kind, name string, seqA, seqB int) (string, string, error) {
+	if seqA < CurrentVersionSeq || seqB < CurrentVersionSeq {
+		return "", "", errcode.New(errcode.InvalidArgument, "seq 不能为负数；0 表示当前版本")
+	}
 	if seqA == seqB {
 		return "", "", errcode.New(errcode.InvalidArgument, "seqA 和 seqB 不能相同")
 	}
 
-	snapA, err := m.GetVersion(clusterCode, ns, apiVersion, kind, name, seqA)
+	yamlA, err := m.yamlBySeq(clusterCode, ns, apiVersion, kind, name, seqA)
 	if err != nil {
 		return "", "", err
 	}
-	snapB, err := m.GetVersion(clusterCode, ns, apiVersion, kind, name, seqB)
+	yamlB, err := m.yamlBySeq(clusterCode, ns, apiVersion, kind, name, seqB)
 	if err != nil {
 		return "", "", err
 	}
 
-	return snapA.RawYAML, snapB.RawYAML, nil
+	return stripManagedFieldsYAML(yamlA), stripManagedFieldsYAML(yamlB), nil
 }
 
 func (m *Manager) Rollback(clusterCode, ns, apiVersion, kind, name string, seq int, operator string, operatorID uint64) (*unstructured.Unstructured, error) {
