@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Drawer,
+  Dropdown,
   Input,
-  Popconfirm,
+  Modal,
   Radio,
   Select,
   Space,
@@ -11,6 +12,7 @@ import {
   Tag,
   message,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import {
@@ -18,6 +20,7 @@ import {
   CodeOutlined,
   DeleteOutlined,
   EditOutlined,
+  EllipsisOutlined,
   FileTextOutlined,
   HistoryOutlined,
   PlusOutlined,
@@ -299,8 +302,7 @@ const ResourceList: React.FC = () => {
         title: '名称',
         dataIndex: ['metadata', 'name'],
         key: 'name',
-        width: 260,
-        fixed: 'left',
+        ellipsis: true,
         render: (_v, item) => {
           const labels = item.metadata?.labels as Record<string, string> | undefined;
           const labelEntries = labels
@@ -385,66 +387,53 @@ const ResourceList: React.FC = () => {
       {
         title: '操作',
         key: 'actions',
-        width: 340,
-        fixed: 'right',
+        width: 148,
+        onHeaderCell: () => ({
+          style: { width: 148, minWidth: 148, maxWidth: 148 },
+        }),
+        onCell: () => ({
+          style: { width: 148, minWidth: 148, maxWidth: 148, whiteSpace: 'nowrap' },
+        }),
         render: (_v, item) => {
           const ns = item.metadata?.namespace;
           const name = item.metadata?.name || '';
           const canViewItem = canView || canUpdate;
           const isPod = item.kind === 'Pod';
-          return (
-            <Space size="small" wrap>
-              <Button
-                type="link"
-                size="small"
-                icon={<FileTextOutlined />}
-                onClick={() => {
-                  if (!canViewItem) {
-                    message.error('无查看资源权限');
-                    return;
-                  }
-                  navigate(editUrl(item));
-                }}
-                disabled={!canViewItem}
-              >
-                查看 YAML
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => {
-                  if (!canUpdate) {
-                    message.error('无编辑资源权限');
-                    return;
-                  }
-                  navigate(editUrl(item));
-                }}
-                disabled={!canUpdate}
-              >
-                编辑
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<HistoryOutlined />}
-                onClick={() => {
-                  if (!canViewItem) {
-                    message.error('无查看资源权限');
-                    return;
-                  }
-                  navigate(editUrl(item) + '?tab=versions');
-                }}
-                disabled={!canViewItem}
-              >
-                版本历史
-              </Button>
-              {isPod && (
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<CodeOutlined />}
-                  onClick={() => {
+          const openYaml = () => {
+            if (!canViewItem) {
+              message.error('无查看资源权限');
+              return;
+            }
+            navigate(editUrl(item));
+          };
+          const moreItems: MenuProps['items'] = [
+            {
+              key: 'yaml',
+              icon: <FileTextOutlined />,
+              label: '查看 YAML',
+              disabled: !canViewItem,
+              onClick: openYaml,
+            },
+            {
+              key: 'versions',
+              icon: <HistoryOutlined />,
+              label: '版本历史',
+              disabled: !canViewItem,
+              onClick: () => {
+                if (!canViewItem) {
+                  message.error('无查看资源权限');
+                  return;
+                }
+                navigate(editUrl(item) + '?tab=versions');
+              },
+            },
+            isPod
+              ? {
+                  key: 'logs',
+                  icon: <CodeOutlined />,
+                  label: '查看日志',
+                  disabled: !canViewItem,
+                  onClick: () => {
                     if (!canViewItem) {
                       message.error('无查看资源权限');
                       return;
@@ -454,63 +443,79 @@ const ResourceList: React.FC = () => {
                       return;
                     }
                     setCurrentPod({
-                      clusterCode: clusterCode,
+                      clusterCode,
                       namespace: ns || '',
-                      name: name,
+                      name,
                     });
                     setLogDrawerOpen(true);
-                  }}
-                  disabled={!canViewItem}
-                >
-                  查看日志
-                </Button>
-              )}
-              <Popconfirm
-                title={`确定删除 ${kind}「${name}」?`}
-                description="删除后该资源将从集群中移除"
-                okButtonProps={{ danger: true, disabled: !canDelete }}
-                onConfirm={async () => {
-                  if (!canDelete) return;
-                  try {
-                    await deleteResource({
-                      code: clusterCode || '',
-                      apiVersion,
-                      kind,
-                      namespace: ns,
-                      name,
-                    }).unwrap();
-                    message.success('删除成功');
-                    handleReload();
-                  } catch {
-                    // interceptor
-                  }
-                }}
-              >
-                <Button
-                  type="link"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  disabled={!canDelete}
-                >
-                  删除
-                </Button>
-              </Popconfirm>
+                  },
+                }
+              : null,
+            {
+              key: 'backup',
+              icon: <CloudServerOutlined />,
+              label: '备份',
+              disabled: !canBackup,
+              onClick: () => {
+                if (!canBackup) {
+                  message.error('无创建备份权限');
+                  return;
+                }
+                navigate(backupUrl(item));
+              },
+            },
+            { type: 'divider' },
+            {
+              key: 'delete',
+              danger: true,
+              icon: <DeleteOutlined />,
+              label: '删除',
+              disabled: !canDelete,
+              onClick: () => {
+                if (!canDelete) {
+                  message.error('无删除资源权限');
+                  return;
+                }
+                Modal.confirm({
+                  title: `确定删除 ${kind}「${name}」?`,
+                  content: '删除后该资源将从集群中移除',
+                  okText: '删除',
+                  okButtonProps: { danger: true },
+                  onOk: async () => {
+                    try {
+                      await deleteResource({
+                        code: clusterCode || '',
+                        apiVersion,
+                        kind,
+                        namespace: ns,
+                        name,
+                      }).unwrap();
+                      message.success('删除成功');
+                      handleReload();
+                    } catch {
+                      // interceptor
+                    }
+                  },
+                });
+              },
+            },
+          ];
+          return (
+            <Space size={0} wrap={false}>
               <Button
                 type="link"
                 size="small"
-                icon={<CloudServerOutlined />}
-                onClick={() => {
-                  if (!canBackup) {
-                    message.error('无创建备份权限');
-                    return;
-                  }
-                  navigate(backupUrl(item));
-                }}
-                disabled={!canBackup}
+                icon={canUpdate ? <EditOutlined /> : <FileTextOutlined />}
+                onClick={openYaml}
+                disabled={!canViewItem}
               >
-                备份
+                {canUpdate ? '编辑' : '查看'}
               </Button>
+              <Dropdown menu={{ items: moreItems }} trigger={['click']}>
+                <Button type="link" size="small" icon={<EllipsisOutlined />}>
+                  更多
+                </Button>
+              </Dropdown>
             </Space>
           );
         },
@@ -628,7 +633,7 @@ const ResourceList: React.FC = () => {
               setSize(s);
             },
           }}
-          scroll={{ x: 1480 }}
+          scroll={{ x: 'max-content' }}
           options={{
             reload: handleReload,
             density: true,
