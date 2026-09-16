@@ -63,7 +63,7 @@ var routePermExact = map[string]string{
 	"POST /api/v1/helm/repos/update":  "helm:install",
 	"GET /api/v1/helm/charts":         "helm:view",
 
-	"GET /api/v1/clusters/:code/pods/:namespace/:pod/logs": "cluster:list",
+	"GET /api/v1/clusters/:code/pods/:namespace/:pod/logs": "resource:get",
 
 	"GET /api/v1/users":                     "user:manage",
 	"POST /api/v1/users":                    "user:manage",

@@ -10,16 +10,28 @@ import {
 } from '@/app/services/resource';
 import { PodLogsViewer } from '@/components/ws';
 import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
+import { useAppSelector } from '@/app/store';
 
 const { Text } = Typography;
 
 // 从 Pod spec 中提取容器名
 function extractContainers(pod: KubernetesResource): string[] {
-  const containers = (pod.spec as { containers?: { name?: string }[] } | undefined)?.containers;
-  if (!Array.isArray(containers)) return [];
-  return containers
-    .map((c) => c?.name)
-    .filter((n): n is string => typeof n === 'string' && n.length > 0);
+  const spec = pod.spec as
+    | {
+        containers?: { name?: string }[];
+        initContainers?: { name?: string }[];
+      }
+    | undefined;
+  const names: string[] = [];
+  for (const list of [spec?.initContainers, spec?.containers]) {
+    if (!Array.isArray(list)) continue;
+    for (const c of list) {
+      if (typeof c?.name === 'string' && c.name.length > 0 && !names.includes(c.name)) {
+        names.push(c.name);
+      }
+    }
+  }
+  return names;
 }
 
 const PodLogsPage: React.FC = () => {
@@ -31,7 +43,11 @@ const PodLogsPage: React.FC = () => {
   const initialPodName = searchParams.get('pod') || '';
   const initialContainer = searchParams.get('container') || undefined;
 
-  const [clusterCode, setClusterCode] = useState<string>(initialClusterCode);
+  const selectedClusterCode = useAppSelector((s) => s.app.selectedClusterCode);
+
+  const [clusterCode, setClusterCode] = useState<string>(
+    initialClusterCode || selectedClusterCode || '',
+  );
   const [namespace, setNamespace] = useState<string>(initialNamespace);
   const [podName, setPodName] = useState<string>(initialPodName);
   const [containerName, setContainerName] = useState<string | undefined>(
@@ -80,6 +96,12 @@ const PodLogsPage: React.FC = () => {
     if (!currentPod) return [];
     return extractContainers(currentPod).map((c) => ({ value: c, label: c }));
   }, [currentPod]);
+
+  useEffect(() => {
+    if (containerOptions.length === 0) return;
+    if (containerName && containerOptions.some((o) => o.value === containerName)) return;
+    setContainerName(containerOptions[0].value);
+  }, [containerOptions, containerName]);
 
   return (
     <PageContainer
@@ -153,7 +175,7 @@ const PodLogsPage: React.FC = () => {
           <Form.Item label="容器">
             <Select
               style={{ width: 200 }}
-              placeholder="（可选）选择容器"
+              placeholder="选择容器"
               value={containerName}
               disabled={!podName || containerOptions.length === 0}
               onChange={(v) => setContainerName(v || undefined)}

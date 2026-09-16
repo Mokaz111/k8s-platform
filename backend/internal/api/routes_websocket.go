@@ -27,7 +27,7 @@ func RegisterWebsocketRoutes(r *gin.RouterGroup, authSvc *auth.Service, wsHandle
 	authorized.Use(middleware.RBACMiddleware(authSvc))
 	{
 		authorized.GET("/clusters/:code/pods/:namespace/:pod/logs",
-			middleware.RequirePermission("cluster:list"),
+			middleware.RequirePermission("resource:get"),
 			podLogHandler.StreamPodLogsHandler)
 	}
 }

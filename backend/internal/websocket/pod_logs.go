@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/k8s-platform/console/internal/cluster"
 	"github.com/k8s-platform/console/pkg/errcode"
@@ -35,6 +36,42 @@ type podLogLine struct {
 	Eof           bool   `json:"eof,omitempty"`
 }
 
+func (s *PodLogService) pushLine(channel string, line podLogLine) {
+	payload, err := json.Marshal(line)
+	if err != nil {
+		return
+	}
+	out, err := json.Marshal(Message{
+		Type:    TypePodLogs,
+		Channel: channel,
+		Data:    json.RawMessage(payload),
+	})
+	if err != nil {
+		return
+	}
+	s.hub.BroadcastToChannel(channel, out)
+}
+
+// WaitForSubscribers 等到至少有一个客户端订阅该频道，或 ctx 取消。
+// 避免 HTTP 触发后立刻推送 tail 日志时，前端还没完成 WebSocket subscribe。
+func (s *PodLogService) WaitForSubscribers(ctx context.Context, channel string) {
+	if s.hub.ChannelSubscriberCount(channel) > 0 {
+		return
+	}
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if s.hub.ChannelSubscriberCount(channel) > 0 {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
 // StreamPodLogs 读取 Pod 日志，逐行通过 Hub 推送给订阅了
 // channel = "pod_logs:{clusterCode}:{ns}:{podName}" 的客户端
 //
@@ -45,22 +82,44 @@ func (s *PodLogService) StreamPodLogs(ctx context.Context, clusterCode, namespac
 		return errcode.New(errcode.InvalidArgument, "clusterCode/namespace/podName 不能为空")
 	}
 
-	// 1. 获取 dynamic client + rest.Config
+	channel := PodLogChannelName(clusterCode, namespace, podName)
+	base := podLogLine{
+		ClusterCode:   clusterCode,
+		Namespace:     namespace,
+		PodName:       podName,
+		ContainerName: containerName,
+		Follow:        follow,
+	}
+
+	pushErr := func(msg string) {
+		line := base
+		line.Line = msg
+		line.Eof = true
+		s.pushLine(channel, line)
+	}
+
+	waitCtx, waitCancel := context.WithTimeout(ctx, 3*time.Second)
+	s.WaitForSubscribers(waitCtx, channel)
+	waitCancel()
+
 	_, restCfg, err := s.clusterMgr.GetDynamicClient(clusterCode)
 	if err != nil {
+		pushErr("打开日志流失败: " + err.Error())
 		return err
 	}
 	if restCfg == nil {
-		return errcode.New(errcode.ClusterConnectFail, "无法获取集群 rest.Config")
+		err := errcode.New(errcode.ClusterConnectFail, "无法获取集群 rest.Config")
+		pushErr(err.Error())
+		return err
 	}
 
-	// 2. 创建 clientset（Pod Logs API 在 CoreV1 而非 Dynamic）
 	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		return errcode.Wrap(errcode.ClusterConnectFail, err, "创建 kubernetes clientset 失败")
+		wrapped := errcode.Wrap(errcode.ClusterConnectFail, err, "创建 kubernetes clientset 失败")
+		pushErr(wrapped.Error())
+		return wrapped
 	}
 
-	// 3. 构造 PodLogOptions
 	opts := &corev1.PodLogOptions{
 		Container: containerName,
 		Follow:    follow,
@@ -70,18 +129,15 @@ func (s *PodLogService) StreamPodLogs(ctx context.Context, clusterCode, namespac
 		opts.TailLines = &tail
 	}
 
-	// 4. 获取日志 Stream（io.ReadCloser）
 	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts)
 	stream, err := req.Stream(ctx)
 	if err != nil {
-		return errcode.Wrap(errcode.K8SAPIError, err, "打开 Pod 日志流失败")
+		wrapped := errcode.Wrap(errcode.K8SAPIError, err, "打开 Pod 日志流失败")
+		pushErr(wrapped.Error())
+		return wrapped
 	}
 	defer func() { _ = stream.Close() }()
 
-	// 5. 构造订阅频道：pod_logs:{clusterCode}:{ns}:{podName}
-	channel := PodLogChannelName(clusterCode, namespace, podName)
-
-	// 6. 逐行读取并推送
 	reader := bufio.NewReaderSize(stream, 64*1024)
 	for {
 		select {
@@ -92,43 +148,21 @@ func (s *PodLogService) StreamPodLogs(ctx context.Context, clusterCode, namespac
 
 		line, readErr := reader.ReadString('\n')
 		if line != "" {
-			payload, _ := json.Marshal(podLogLine{
-				ClusterCode:   clusterCode,
-				Namespace:     namespace,
-				PodName:       podName,
-				ContainerName: containerName,
-				Line:          strings.TrimRight(line, "\r\n"),
-				Follow:        follow,
-			})
-			out, _ := json.Marshal(Message{
-				Type:    TypePodLogs,
-				Channel: channel,
-				Data:    json.RawMessage(payload),
-			})
-			s.hub.BroadcastToChannel(channel, out)
+			item := base
+			item.Line = strings.TrimRight(line, "\r\n")
+			s.pushLine(channel, item)
 		}
 
 		if readErr != nil {
 			if readErr == io.EOF {
-				// 流结束：follow=false 时为正常 EOF；follow=true 时表示 Kubernetes 端流被关闭
-				// 推送一个 eof 标记给客户端
-				payload, _ := json.Marshal(podLogLine{
-					ClusterCode:   clusterCode,
-					Namespace:     namespace,
-					PodName:       podName,
-					ContainerName: containerName,
-					Follow:        follow,
-					Eof:           true,
-				})
-				out, _ := json.Marshal(Message{
-					Type:    TypePodLogs,
-					Channel: channel,
-					Data:    json.RawMessage(payload),
-				})
-				s.hub.BroadcastToChannel(channel, out)
+				item := base
+				item.Eof = true
+				s.pushLine(channel, item)
 				return nil
 			}
-			return errcode.Wrap(errcode.K8SAPIError, readErr, "读取 Pod 日志流失败")
+			wrapped := errcode.Wrap(errcode.K8SAPIError, readErr, "读取 Pod 日志流失败")
+			pushErr(wrapped.Error())
+			return wrapped
 		}
 	}
 }
