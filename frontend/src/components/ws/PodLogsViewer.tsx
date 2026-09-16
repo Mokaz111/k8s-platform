@@ -8,8 +8,8 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { usePodLogs } from '@/hooks/usePodLogs';
-import { useAppDispatch } from '@/app/store';
-import { clearPodLogs } from '@/slices/wsSlice';
+import { useAppDispatch, useAppSelector } from '@/app/store';
+import { clearPodLogs, selectWSStatus } from '@/slices/wsSlice';
 import request from '@/app/services/request';
 
 const { Text } = Typography;
@@ -69,6 +69,7 @@ export const PodLogsViewer: React.FC<PodLogsViewerProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const { message } = App.useApp();
+  const wsStatus = useAppSelector(selectWSStatus);
   const { lines, text, eof, channel, isEmpty } = usePodLogs({
     clusterCode,
     namespace,
@@ -78,11 +79,13 @@ export const PodLogsViewer: React.FC<PodLogsViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [triggering, setTriggering] = useState(false);
+  const [triggerError, setTriggerError] = useState<string>('');
 
   // 触发后端日志流（仅调用一次，重试由用户主动点）
   const triggerStream = React.useCallback(async () => {
     if (!clusterCode || !namespace || !podName) return;
     setTriggering(true);
+    setTriggerError('');
     try {
       const params: Record<string, string | number | boolean> = {
         follow: follow ? 1 : 0,
@@ -95,20 +98,22 @@ export const PodLogsViewer: React.FC<PodLogsViewerProps> = ({
         )}/${encodeURIComponent(podName)}/logs`,
         { params },
       );
-      // 后端返回 channel 名，前端已通过 usePodLogs 自动订阅同名的 channel
-    } catch {
-      // 错误由 axios interceptor 统一提示
+    } catch (err) {
+      const msg = (err as { message?: string })?.message || '触发日志流失败';
+      setTriggerError(msg);
     } finally {
       setTriggering(false);
     }
   }, [clusterCode, namespace, podName, containerName, follow, tailLines]);
 
   useEffect(() => {
-    if (autoTrigger) {
+    if (!autoTrigger) return;
+    if (wsStatus !== 'open') return;
+    const timer = window.setTimeout(() => {
       triggerStream();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clusterCode, namespace, podName, containerName, autoTrigger]);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [clusterCode, namespace, podName, containerName, autoTrigger, wsStatus, triggerStream]);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -180,6 +185,13 @@ export const PodLogsViewer: React.FC<PodLogsViewerProps> = ({
             共 {lines.length} 行
           </Text>
           {eof && <Tag color="default">EOF</Tag>}
+          {wsStatus !== 'open' && (
+            <Tag color="warning">
+              {wsStatus === 'connecting' || wsStatus === 'reconnecting'
+                ? 'WebSocket 连接中'
+                : 'WebSocket 未连接'}
+            </Tag>
+          )}
           {triggering && (
             <Text type="secondary" style={{ fontSize: 11 }}>
               正在触发流...
@@ -237,7 +249,11 @@ export const PodLogsViewer: React.FC<PodLogsViewerProps> = ({
       >
         {isEmpty ? (
           <div style={{ color: '#888', fontStyle: 'italic' }}>
-            等待日志输出...（已自动触发后端日志流；如长时间无输出可点工具栏刷新按钮重试）
+            {triggerError
+              ? triggerError
+              : wsStatus !== 'open'
+                ? '等待 WebSocket 连接后开始拉取日志...'
+                : '等待日志输出...（已自动触发后端日志流；如长时间无输出可点工具栏刷新按钮重试）'}
           </div>
         ) : (
           visibleLines.map((l, idx) => (

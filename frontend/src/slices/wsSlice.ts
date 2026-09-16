@@ -5,12 +5,14 @@ export const WS_TYPE_POD_LOGS = 'pod_logs';
 export const WS_TYPE_TASK_PROGRESS = 'task_progress';
 export const WS_TYPE_CLUSTER_EVENT = 'cluster_event';
 export const WS_TYPE_PONG = 'pong';
+export const WS_TYPE_ERROR = 'error';
 
 export type WSMessageType =
   | typeof WS_TYPE_POD_LOGS
   | typeof WS_TYPE_TASK_PROGRESS
   | typeof WS_TYPE_CLUSTER_EVENT
-  | typeof WS_TYPE_PONG;
+  | typeof WS_TYPE_PONG
+  | typeof WS_TYPE_ERROR;
 
 export type WSConnectionStatus =
   | 'idle'
@@ -168,6 +170,11 @@ const wsSlice = createSlice({
         case WS_TYPE_PONG:
           state.lastPongAt = new Date().toISOString();
           break;
+        case WS_TYPE_ERROR: {
+          const payload = msg.data as { message?: string } | undefined;
+          state.lastError = payload?.message || 'WebSocket 频道订阅失败';
+          break;
+        }
         case WS_TYPE_TASK_PROGRESS: {
           const payload = msg.data as TaskProgressPayload | undefined;
           if (payload) ringPush(state.taskProgress, payload, MAX_TASK_PROGRESS);

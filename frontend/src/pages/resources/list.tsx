@@ -49,6 +49,19 @@ dayjs.extend(relativeTime);
 
 const CLUSTER_SCOPED_NS = '__cluster__';
 
+function firstPodContainer(item: KubernetesResource): string | undefined {
+  const spec = item.spec as
+    | { containers?: { name?: string }[]; initContainers?: { name?: string }[] }
+    | undefined;
+  for (const list of [spec?.initContainers, spec?.containers]) {
+    if (!Array.isArray(list)) continue;
+    for (const c of list) {
+      if (typeof c?.name === 'string' && c.name) return c.name;
+    }
+  }
+  return undefined;
+}
+
 const defaultYamlTemplate = (apiVersion: string, kind: string, namespace?: string, name?: string): string => {
   const lines = [
     `apiVersion: ${apiVersion}`,
@@ -145,6 +158,7 @@ const ResourceList: React.FC = () => {
     clusterCode: string;
     namespace: string;
     name: string;
+    containerName?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -446,6 +460,7 @@ const ResourceList: React.FC = () => {
                       clusterCode,
                       namespace: ns || '',
                       name,
+                      containerName: firstPodContainer(item),
                     });
                     setLogDrawerOpen(true);
                   },
@@ -708,6 +723,7 @@ const ResourceList: React.FC = () => {
             clusterCode={currentPod.clusterCode}
             namespace={currentPod.namespace}
             podName={currentPod.name}
+            containerName={currentPod.containerName}
             height={Math.max(480, window.innerHeight - 220)}
             autoScroll
             autoTrigger

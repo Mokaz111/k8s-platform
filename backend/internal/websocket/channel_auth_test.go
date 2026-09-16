@@ -27,6 +27,16 @@ func TestAuthorizeChannel(t *testing.T) {
 	if !authorizeChannel(pt, "pod_logs:c1:dev:nginx") {
 		t.Fatal("should allow scoped pod logs")
 	}
+
+	resourcePT := &auth.PermissionTree{
+		Perms: map[string]struct{}{"resource:get": {}},
+		Scopes: []auth.Scope{
+			{ScopeType: models.ScopeNamespace, ClusterCode: "c1", Namespace: "dev"},
+		},
+	}
+	if !authorizeChannel(resourcePT, "pod_logs:c1:dev:nginx") {
+		t.Fatal("resource:get should allow pod logs")
+	}
 	if authorizeChannel(pt, "pod_logs:*") {
 		t.Fatal("wildcard must be denied")
 	}

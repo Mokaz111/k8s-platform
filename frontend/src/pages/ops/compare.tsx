@@ -6,7 +6,6 @@ import {
   Col,
   Empty,
   Form,
-  Input,
   Row,
   Select,
   Space,
@@ -17,7 +16,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { DiffOutlined, ReloadOutlined, SwapOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { useListClustersQuery } from '@/app/services/cluster';
-import { useLazyGetResourceQuery } from '@/app/services/resource';
+import { useLazyGetResourceQuery, useListResourcesQuery } from '@/app/services/resource';
 import { useAllowedNamespaces } from '@/hooks/useAllowedNamespaces';
 import { YamlDiffEditor } from '@/components/YamlEditor';
 import { ALL_KIND_OPTIONS, ALL_KINDS_MAP } from '@/constants/k8sKinds';
@@ -40,6 +39,8 @@ const ClusterCompare: React.FC = () => {
   const kindWatch = Form.useWatch('kind', form);
   const leftCluster = Form.useWatch('leftCluster', form);
   const rightCluster = Form.useWatch('rightCluster', form);
+  const leftNamespace = Form.useWatch('leftNamespace', form);
+  const rightNamespace = Form.useWatch('rightNamespace', form);
 
   const kindMeta = ALL_KINDS_MAP[kindWatch] || ALL_KIND_OPTIONS[0];
   const isClusterScoped = !!kindMeta?.clusterScoped;
@@ -68,6 +69,56 @@ const ClusterCompare: React.FC = () => {
     () => rightNs.map((n) => ({ label: n, value: n })),
     [rightNs],
   );
+
+  const apiVersion = kindMeta?.apiVersion || 'apps/v1';
+  const canListLeft = !!leftCluster && !!kindWatch && (isClusterScoped || !!leftNamespace);
+  const canListRight = !!rightCluster && !!kindWatch && (isClusterScoped || !!rightNamespace);
+
+  const { data: leftResData, isFetching: leftListing } = useListResourcesQuery(
+    {
+      code: leftCluster || '',
+      apiVersion,
+      kind: kindWatch || 'Deployment',
+      namespace: isClusterScoped ? undefined : leftNamespace,
+      size: 200,
+    },
+    { skip: !canListLeft, refetchOnMountOrArgChange: true },
+  );
+  const { data: rightResData, isFetching: rightListing } = useListResourcesQuery(
+    {
+      code: rightCluster || '',
+      apiVersion,
+      kind: kindWatch || 'Deployment',
+      namespace: isClusterScoped ? undefined : rightNamespace,
+      size: 200,
+    },
+    { skip: !canListRight, refetchOnMountOrArgChange: true },
+  );
+
+  const nameOptions = useMemo(() => {
+    const sides = new Map<string, { left: boolean; right: boolean }>();
+    for (const item of leftResData?.items || []) {
+      const n = item.metadata?.name;
+      if (!n) continue;
+      sides.set(n, { left: true, right: false });
+    }
+    for (const item of rightResData?.items || []) {
+      const n = item.metadata?.name;
+      if (!n) continue;
+      const prev = sides.get(n) || { left: false, right: false };
+      prev.right = true;
+      sides.set(n, prev);
+    }
+    return [...sides.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, flag]) => ({
+        value: name,
+        label:
+          flag.left && flag.right
+            ? name
+            : `${name}（仅${flag.left ? '左侧' : '右侧'}）`,
+      }));
+  }, [leftResData, rightResData]);
 
   const [fetchResource] = useLazyGetResourceQuery();
   const [leftYaml, setLeftYaml] = useState('');
@@ -289,6 +340,7 @@ const ClusterCompare: React.FC = () => {
                     showSearch
                     options={ALL_KIND_OPTIONS}
                     optionFilterProp="label"
+                    onChange={() => form.setFieldValue('name', undefined)}
                   />
                 </Form.Item>
               </Col>
@@ -296,9 +348,19 @@ const ClusterCompare: React.FC = () => {
                 <Form.Item
                   name="name"
                   label="资源名称"
-                  rules={[{ required: true, message: '请输入资源名称' }]}
+                  rules={[{ required: true, message: '请选择资源' }]}
                 >
-                  <Input placeholder="如 nginx" allowClear />
+                  <Select
+                    showSearch
+                    allowClear
+                    loading={leftListing || rightListing}
+                    options={nameOptions}
+                    placeholder="从两侧集群中选择资源"
+                    optionFilterProp="label"
+                    notFoundContent={
+                      leftListing || rightListing ? '正在加载资源列表...' : '没有可对比的资源'
+                    }
+                  />
                 </Form.Item>
               </Col>
               <Col xs={24} md={6}>

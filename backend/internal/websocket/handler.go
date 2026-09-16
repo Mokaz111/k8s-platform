@@ -157,6 +157,8 @@ func (h *Handler) readPump(c *Client) {
 		case "subscribe":
 			if authorizeChannel(c.permTree, act.Channel) {
 				c.subscribe(act.Channel)
+			} else {
+				h.sendError(c, act.Channel, "无权订阅该频道")
 			}
 		case "unsubscribe":
 			c.unsubscribe(act.Channel)
@@ -170,6 +172,22 @@ func (h *Handler) sendPong(c *Client, channel string) {
 	out, err := json.Marshal(Message{
 		Type:    TypePong,
 		Channel: channel,
+	})
+	if err != nil {
+		return
+	}
+	h.hub.SendToClient(c, out)
+}
+
+func (h *Handler) sendError(c *Client, channel, msg string) {
+	payload, err := json.Marshal(map[string]string{"message": msg})
+	if err != nil {
+		return
+	}
+	out, err := json.Marshal(Message{
+		Type:    TypeError,
+		Channel: channel,
+		Data:    payload,
 	})
 	if err != nil {
 		return

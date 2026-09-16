@@ -80,6 +80,7 @@ const (
 	TypeTaskProgress = "task_progress"
 	TypeClusterEvent = "cluster_event"
 	TypePong         = "pong"
+	TypeError        = "error"
 )
 
 // Redis PubSub channel 名称（与 BackupWorker 等发布端约定）
@@ -178,6 +179,19 @@ func (h *Hub) SendToClient(c *Client, payload []byte) {
 // payload 必须是已经序列化好的 Message JSON（含 channel 字段）
 func (h *Hub) BroadcastToChannel(channel string, payload []byte) {
 	h.broadcastToChannel(channel, payload, nil)
+}
+
+// ChannelSubscriberCount 返回当前订阅了指定频道的在线客户端数
+func (h *Hub) ChannelSubscriberCount(channel string) int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	n := 0
+	for c := range h.clients {
+		if c.subscribed(channel) {
+			n++
+		}
+	}
+	return n
 }
 
 func (h *Hub) broadcastToChannel(channel string, payload []byte, progressRaw []byte) {

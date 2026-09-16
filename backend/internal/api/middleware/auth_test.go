@@ -30,7 +30,7 @@ func TestResolvePermCodeExact(t *testing.T) {
 		{"DELETE", "/api/v1/helm/repos/:name", "helm:install"},
 		{"POST", "/api/v1/helm/repos/update", "helm:install"},
 		{"GET", "/api/v1/helm/charts", "helm:view"},
-		{"GET", "/api/v1/clusters/:code/pods/:namespace/:pod/logs", "cluster:list"},
+		{"GET", "/api/v1/clusters/:code/pods/:namespace/:pod/logs", "resource:get"},
 		{"GET", "/api/v1/unknown", ""},
 	}
 	for _, tc := range cases {
